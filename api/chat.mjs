@@ -31,8 +31,20 @@ function readBody(req) {
 }
 
 export default async function handler(req, res) {
+  /* Test de santé : ne révèle jamais la clé, seulement sa présence. */
+  if (req.method === 'GET') {
+    return res.status(200).json({
+      ok: true,
+      configured: Boolean(process.env.GROQ_API_KEY),
+      env_keys: Object.keys(process.env)
+        .filter((k) => k.startsWith('GROQ'))
+        .sort(),
+      model: 'openai/gpt-oss-120b',
+      runtime: process.version,
+    });
+  }
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+    res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ error: 'Méthode non autorisée.' });
   }
 
