@@ -209,6 +209,18 @@ body{background:radial-gradient(ellipse at 90% 0%,#25293b 0,transparent 42%),#0c
 
 
 /* ---------- Assistant IA v2 ---------- */
+
+/* carte de calcul : chiffres produits par le moteur, pas par le modèle */
+.ai-calc{margin-top:10px;border:1px solid #3c4a2e;background:#141a12;border-radius:12px;padding:10px 12px;font-size:12px}
+.ai-chead{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;padding-bottom:7px;border-bottom:1px solid #3c4a2e}
+.ai-chead b{font-size:9.5px;letter-spacing:.12em;color:#c8f36d;text-transform:uppercase}
+.ai-chead span{font-size:8.5px;letter-spacing:.1em;color:#7f8a6d;border:1px solid #3c4a2e;border-radius:999px;padding:2px 7px}
+.ai-cline{display:flex;justify-content:space-between;gap:12px;padding:2.5px 0;color:#b9c4ae}
+.ai-cline b{color:#eef4e6;font-weight:700;white-space:nowrap}
+.ai-cline b.strong{color:#fff}
+.ai-cline b.pos{color:#b6ee7a}
+.ai-cfoot{margin-top:8px;padding-top:8px;border-top:1px dashed #3c4a2e;font-size:10.5px;color:#8b9779;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+
 .ai-dot.down{color:#f0a35e}
 .ai-tools{display:flex;gap:8px;align-items:center;margin-left:auto;margin-right:14px}
 .ai-tools button{background:#11141b;border:1px solid #383e49;color:#9aa3b1;border-radius:9px;padding:5px 9px;font-size:11px;cursor:pointer}
@@ -483,9 +495,11 @@ function computeProduct(p, opts) {
   // prix pour que net = priceRaw
   let priceFees = (priceRaw + feeFixed) / (1 - feePct);
 
-  // prix conseillé par marge cible : coût (temps valorisé inclus) / (1 - marge)
+  // prix conseillé par marge cible. La marge affichée par l'app est
+  // (bénéfice / net encaissé) : on résout prix − frais fixes − frais% × prix
+  // = coût / (1 − marge), sinon deux « marge 60 % » afficheraient deux prix.
   const targetM = (Number(st.targetMarginPct) || 0) / 100;
-  let priceMargin = (variable + feeFixed) / Math.max(0.05, (1 - targetM - feePct));
+  let priceMargin = (variable / Math.max(0.05, 1 - targetM) + feeFixed) / Math.max(0.05, 1 - feePct);
 
   // prix final affiché = override manuel sinon prix "frais + coefficient"
   const price = (p.priceOverride !== null && p.priceOverride !== undefined && p.priceOverride !== '' && Number(p.priceOverride) > 0)
@@ -2247,6 +2261,14 @@ FORMAT EXACT
 "suggestions_actions" : 0 à 3 actions PRÊTES que l'utilisateur peut déclencher d'un clic. L'app les numérote prop1, prop2, prop3 : tu peux ensuite les appliquer avec {"type":"apply_suggestion","id":"prop2"}. Utilise-les pour les corrections que tu recommandes sans les imposer (ex. objets sous-margés, prix à réaligner, vieux stocks).
 
 ACTIONS DISPONIBLES (utilise exactement ces noms de champs)
+0. CALCULS — les plus importants. Tu ne fais JAMAIS d'arithmétique toi-même : tu demandes le calcul à l'app, elle répond avec les chiffres exacts de son moteur, puis tu commentes ces chiffres. Utilise EN PRIORITÉ :
+   a. {"type":"calc_product","productId":str} ou {"type":"calc_product","productName":str} — coût de revient, prix, bénéfice, marge d'un objet du catalogue. Champs optionnels pour tester une hypothèse : "weightG","hours","min","qty","multiplier","price","postMin".
+   b. {"type":"calc_product_sim","hours":nb,"min":nb,"weightG":nb?,"multiplier":nb?,"price":nb?,"filamentId":str?,"qty":nb?} — même calcul pour un objet qui n'existe pas encore (pas de productId).
+   c. {"type":"calc_sale","id":str?} ou {"type":"calc_sale","productName":str} — bénéfice réel d'une vente enregistrée.
+   d. {"type":"calc_totals"} — CA, coût, bénéfice, marge, ce mois-ci, meilleurs objets.
+   e. {"type":"calc_settings"} — relire la base de calcul (électricité, débit, ratés, frais, postes comptés).
+   Le résultat t'est renvoyé avec le champ exact "resultat_calcul". Cite ses chiffres TELS QUELS, sans les arrondir autrement ni les additionner toi-même. Tu peux enchaîner plusieurs calc_* puis commenter.
+
 1. {"type":"add_filament","name":str,"material":str,"colorHex":"#rrggbb","spoolWeight":nb,"spoolPrice":nb,"stockSpools":nb,"remaining":nb,"brand":str}
 2. {"type":"add_filaments","items":[add_filament,…]}
 3. {"type":"update_filament","id":str, + champs à changer}
@@ -2273,7 +2295,8 @@ RÈGLES
 - Poids d'un objet FACULTATIF : sans poids l'app l'estime depuis le temps (débit ${S.settings.flowGPerHour} g/h) et l'affiche comme estimé. En revanche n'invente jamais un temps d'impression : s'il manque, demande-le dans "message" avec "actions":[].
 - Coût par défaut = matière + ratés + électricité. Le temps de travail, l'usure et l'emballage sont OPTIONNELS et désactivés. Ne les compte pas dans tes calculs sauf si l'utilisateur le demande explicitement.
 - Prix conseillé = (coût × coefficient + frais fixes) / (1 − commission − frais paiement). Pour un prix, cite toujours : coût, prix, bénéfice, marge.
-- Quand l'utilisateur demande « la meilleure marge », « qu'est-ce qui rapporte », ou un audit : calcule toi-même à partir de l'état et donne des chiffres précis, avec "actions":[].
+- Quand l'utilisateur demande un chiffre (coût, prix, bénéfice, marge, total, comparaison, « combien je gagne »), tu réponds avec action(s) calc_* et "actions":[] sinon. Tu n'as PAS le droit d'écrire un montant que le moteur ne t'a pas donné.
+- Si le calcul demandé n'est pas couvert par les actions calc_*, dis-le simplement et propose l'écran du site à ouvrir (Simulateur, Rentabilité).
 - Si une info indispensable manque, pose UNE seule question ciblée et renvoie "actions":[].
 - Ne dis jamais qu'une modification est déjà faite : elle sera proposée puis confirmée. Formule au présent de proposition (« je peux », « voici ce que je vais changer »).
 - Nombres JSON, jamais de chaînes numériques. Pas de markdown, pas de liste à puces dans "message".
@@ -2287,6 +2310,8 @@ ${JSON.stringify(aiState())}${aiLastError ? '\n\nDernière erreur technique renc
 
 /* ---------------- suggestions enregistrées (survit au rendu) ---------------- */
 let aiSuggested = [];
+/* dernier résultat du moteur, prêt à être ouvert dans le simulateur */
+let aiLastCalc = null;
 function aiSuggestionChips() {
   return aiSuggested.length
     ? `<div class="ai-actions">${aiSuggested.map((s, i) => `<button class="ai-chip" onclick="aiSuggestion(${i})">${esc(s)}</button>`).join('')}</div>`
@@ -2386,6 +2411,98 @@ function viewAI() {
 function aiSetContext(v) { aiContext = v || 'auto'; render(); }
 
 /* Message enrichi : **gras**, `code`, sauts de ligne — sans HTML injecté. */
+/* ---------------- carte de résultat : les chiffres viennent du moteur ---------------- */
+function aiCalcCardHTML(c) {
+  if (!c) return '';
+  const line = (l, v, cls) => `<div class="ai-cline"><span>${l}</span><b class="${cls || ''}">${v}</b></div>`;
+  if (c.type === 'objet') {
+    return `<div class="ai-calc">
+      <div class="ai-chead"><b>Calculé par l’app</b><span>${c.hypothese ? 'SIMULATION' : 'OBJET'}</span></div>
+      ${line('Matière', money(c.detail.matiere))}
+      ${line('Ratés (' + num(S.settings.failRatePct, 0) + ' %)', money(c.detail.rates))}
+      ${line('Électricité', money(c.detail.electricite))}
+      ${line('Coût de revient', money(c.detail.revient), 'strong')}
+      ${line('Prix de vente', money(c.prix), 'strong')}
+      ${line('Frais de vente', '−' + money(c.frais_vente))}
+      ${line('Bénéfice', money(c.benefice_total) + (c.quantite > 1 ? ` (${c.quantite} × ${money(c.benefice_unitaire)})` : ''), 'pos')}
+      ${line('Marge nette', pct(c.marge_pct))}
+      ${line('Bénéfice / heure', money(c.benefice_par_heure))}
+      ${line('Poids retenu', num(c.poids_g, 1) + ' g' + (c.poids_estime ? ' (estimé)' : ''))}
+      <div class="ai-cfoot">Prix plancher ${money(c.prix_plancher)} · marge cible ${num(S.settings.targetMarginPct, 0)} % → ${money(c.prix_marge_cible)}
+        <button class="btn xs" onclick="aiOpenCalc()">Ouvrir dans le simulateur</button></div>
+    </div>`;
+  }
+  if (c.type === 'vente') {
+    return `<div class="ai-calc">
+      <div class="ai-chead"><b>Calculé par l’app</b><span>VENTE</span></div>
+      ${line('Objet', esc(c.objet) + ' · ' + frDate(c.date))}
+      ${line('Encaissé', money(c.encaisse))}
+      ${line('Frais plateforme + paiement', '−' + money(c.frais))}
+      ${line('Coût de revient', '−' + money(c.cout))}
+      ${line('Port facturé / réel', money(c.port_facture) + ' / ' + money(c.port_reel))}
+      ${line('Bénéfice', money(c.benefice), 'pos')}
+      ${line('Marge', pct(c.marge_pct, 0))}
+    </div>`;
+  }
+  if (c.type === 'totaux') {
+    return `<div class="ai-calc">
+      <div class="ai-chead"><b>Calculé par l’app</b><span>TOTAUX</span></div>
+      ${line('Ventes', c.ventes)}
+      ${line('Chiffre d’affaires', money(c.ca))}
+      ${line('Bénéfice', money(c.benefice), 'pos')}
+      ${line('Marge moyenne', pct(c.marge_pct))}
+      ${line('Ce mois-ci', money(c.mois_benefice) + ' sur ' + money(c.mois_ca))}
+      ${line('Heures imprimées', num(c.heures_imprimees, 1) + ' h')}
+      ${c.meilleurs_objets.length ? line('Meilleur objet', esc(c.meilleurs_objets[0].objet) + ' · ' + money(c.meilleurs_objets[0].benefice)) : ''}
+    </div>`;
+  }
+  if (c.type === 'reglages') {
+    const r = c.reglages;
+    return `<div class="ai-calc">
+      <div class="ai-chead"><b>Réglages lus par l’app</b><span>BASE DE CALCUL</span></div>
+      ${line('Électricité', num(r.electricite_eur_kwh, 3) + ' €/kWh')}
+      ${line('Débit matière', num(r.debit_g_par_h, 1) + ' g/h')}
+      ${line('Ratés', num(r.taux_rate_pct, 0) + ' %')}
+      ${line('Frais de vente', num(r.commission_pct + r.frais_paiement_pct, 1) + ' % + ' + money(r.frais_fixes_eur))}
+      ${line('Marge cible', num(r.marge_cible_pct, 0) + ' %')}
+      ${line('Postes comptés', 'matière + électricité' + (r.postes.temps ? ' + temps' : '') + (r.postes.usure ? ' + usure' : '') + (r.postes.emballage ? ' + emballage' : ''))}
+    </div>`;
+  }
+  return '';
+}
+
+/* Ouvre le simulateur avec les paramètres du dernier calcul. */
+function aiOpenCalc() {
+  const c = aiLastCalc;
+  if (!c) return toast('Aucun calcul à ouvrir');
+  if (c.type === 'objet') {
+    const p = c.productId ? findProd(c.productId) : null;
+    simState = {
+      weight: p ? p.weightG : c.poids_g, hours: Math.floor(parseFloat(c.duree) || 0), min: 0,
+      filamentId: p ? p.filamentId : (S.filaments[0] && S.filaments[0].id) || null,
+      qty: c.quantite || 1, mult: c.coefficient || 2.5, postMin: p ? (p.postMin ?? S.settings.postProcessMin) : S.settings.postProcessMin
+    };
+    const m = /(\d+)\s*min/.exec(c.duree || '');
+    if (m) { simState.hours = 0; simState.min = +m[1]; }
+    aiPending = null;
+    go('calc');
+    return;
+  }
+  toast('Ce calcul n’a pas de simulation à ouvrir');
+}
+
+/* ---------------- assistant : petites fonctions utilitaires ---------------- */
+/* Une bulle = le texte + la carte de calcul (chiffres du moteur) + les
+   actions prêtes à cliquer renvoyées par le modèle. */
+function aiBubbleHTML(m, i) {
+  const cards = (m.calcs && m.calcs.length ? m.calcs : (m.calc ? [m.calc] : []))
+    .map(aiCalcCardHTML).join('');
+  const tries = (m.tries && m.tries.length)
+    ? `<div class="ai-tries">${m.tries.map((t, j) => `<button class="ai-chip" onclick="aiTryAction(${i},${j})">↳ ${esc(t.label)}</button>`).join('')}</div>`
+    : '';
+  return `<div class="bubble ${m.role === 'user' ? 'mine' : 'theirs'}${m.warn ? ' warn' : ''}"><span>${m.role === 'user' ? 'TOI' : '✦ ASSISTANT'}</span><p>${aiRich(m.text)}</p>${cards}${tries}</div>`;
+}
+
 function aiRich(t) {
   return esc(t)
     .replace(/\*\*([^*\n]{1,80})\*\*/g, '<b>$1</b>')
@@ -2396,10 +2513,7 @@ function paintAI() {
   const el = document.getElementById('ai-messages');
   if (!el) return;
   el.innerHTML = aiMessages.length
-    ? aiMessages.map((m, i) => `<div class="bubble ${m.role === 'user' ? 'mine' : 'theirs'}${m.warn ? ' warn' : ''}"><span>${m.role === 'user' ? 'TOI' : '✦ ASSISTANT'}</span><p>${aiRich(m.text)}</p>${
-      (m.tries && m.tries.length)
-        ? `<div class="ai-tries">${m.tries.map((t, j) => `<button class="ai-chip" onclick="aiTryAction(${i},${j})">↳ ${esc(t.label)}</button>`).join('')}</div>`
-        : ''}</div>`).join('')
+    ? aiMessages.map((m, i) => aiBubbleHTML(m, i)).join('')
     : `<div class="ai-welcome"><div class="welcome-icon">✦</div><h3>Bonjour, qu’est-ce qu’on fait ?</h3><p>Dis-le en français : je prépare les changements, je calcule, je vérifie. Tu gardes la main.</p></div>`;
   if (aiBusy) el.innerHTML += '<div class="bubble theirs"><span>✦ ASSISTANT</span><p>Je réfléchis…</p></div>';
   el.scrollTop = el.scrollHeight;
@@ -2442,6 +2556,14 @@ function aiTryAction(i, j) {
   if (!t) return;
   try {
     const v = validateAI(t.action);
+    if (v.act.type.startsWith('calc_')) {
+      /* un calcul ne modifie rien : il s'exécute immédiatement */
+      applyAIActions([v.act]);
+      aiLastCalc = v.calc;
+      m.calc = v.calc;
+      paintAI();
+      return toast('Calculé par l’app');
+    }
     aiPending = { actions: [v] };
     paintAI();
     toast('Proposition prête : confirme pour appliquer');
@@ -2822,7 +2944,89 @@ function validateAI(a) {
         .find(s => s.id === id || aiNorm(s.id) === aiNorm(id));
       if (!known || !known.raw) throw Error(`suggestion inconnue ou obsolète (${id})`);
       const v = validateAI(known.raw);
-      return { act: v.act, label: `↻ ${v.label}` };
+      return { act: v.act, label: `↻ ${v.label}`, calc: v.calc };
+    }
+    /* ------------------------------------------------- calculs (moteur app) */
+    /* L'IA ne fait JAMAIS l'arithmétique : elle demande un calcul, c'est le
+       moteur de l'app qui répond. Les chiffres affichés viennent d'ici. */
+    case 'calc_product': {
+      const p = aiProd(a);
+      const qty = Math.max(1, Math.round(nb(a.qty) ?? nb(a.quantite) ?? 1));
+      const priceInput = nb(a.price);
+      /* on ne reprend QUE les valeurs explicitement demandées : sans ça, un
+         simple « calcule cet objet » passerait pour une hypothèse */
+      const sim = {};
+      if (nb(a.weightG) !== null) sim.weight = nb(a.weightG);
+      if (nb(a.hours ?? a.printHours) !== null) sim.hours = nb(a.hours ?? a.printHours);
+      if (nb(a.min ?? a.printMin) !== null) sim.min = nb(a.min ?? a.printMin);
+      if (a.filamentId) sim.filamentId = a.filamentId;
+      if (nb(a.qty) !== null && nb(a.qty) !== undefined) sim.qty = Math.max(1, Math.round(nb(a.qty)));
+      if (nb(a.multiplier ?? a.mult) !== null) sim.mult = nb(a.multiplier ?? a.mult);
+      if (nb(a.postMin) !== null) sim.postMin = nb(a.postMin);
+      const hasSim = Object.keys(sim).length > 0;
+      const calc = calculerObjet(p, { price: priceInput, qty, sim: hasSim ? sim : null });
+      return {
+        act: { type: 'calc_product', productId: p.id, price: priceInput, qty, sim: hasSim ? sim : null },
+        label: `Calculer « ${p.name} » — ${money(calc.costs.variable)} de revient, prix ${money(calc.price)}, marge ${pct(calc.marginPct)} (moteur de l’app)`,
+        calc
+      };
+    }
+    case 'calc_product_sim': {
+      /* objet qui n'existe pas encore : on simule avec les réglages réels */
+      const hours = nb(a.hours ?? a.printHours) ?? 0;
+      const min = nb(a.min ?? a.printMin) ?? 0;
+      const totalMin = nb(a.totalMinutes ?? a.duree_min);
+      const h = totalMin !== null ? Math.floor(totalMin / 60) : hours;
+      const m = totalMin !== null ? Math.round(totalMin % 60) : min;
+      if (h <= 0 && m <= 0) throw Error('temps d’impression manquant pour le calcul');
+      const sim = {
+        weight: nb(a.weightG), hours: h, min: m, qty: Math.max(1, Math.round(nb(a.qtyPerPlate ?? a.qty) ?? 1)),
+        mult: nb(a.multiplier ?? a.mult), filamentId: a.filamentId || null, postMin: nb(a.postMin)
+      };
+      const calc = calculerObjet(null, { price: nb(a.price), qty: 1, sim });
+      return {
+        act: { type: 'calc_product_sim', sim, price: nb(a.price) },
+        label: `Simuler ${hMin(h + m / 60)} — revient ${money(calc.costs.variable)}, prix ${money(calc.price)}, marge ${pct(calc.marginPct)} (moteur de l’app)`,
+        calc
+      };
+    }
+    case 'calc_sale': {
+      const s = findSale(a.id) || ((a.productName || a.produit) ? latestSaleMatching(a.produit || a.productName) : null);
+      if (!s) throw Error('vente introuvable');
+      const r = saleProfit(s);
+      return {
+        act: { type: 'calc_sale', id: s.id },
+        label: `Calculer la vente « ${s.productName} » du ${frDate(s.date)} — encaissé ${money(r.gross)}, bénéfice ${money(r.profit)}, marge ${pct(r.margin, 0)}`,
+        calc: {
+          type: 'vente', vente: s.id, objet: s.productName, date: s.date, quantite: Number(s.qty) || 1,
+          encaisse: +r.gross.toFixed(2), frais: +r.fees.toFixed(2), cout: +r.cost.toFixed(2),
+          port_facture: +(Number(s.shipping) || 0).toFixed(2), port_reel: +(Number(s.shippingCost) || 0).toFixed(2),
+          benefice: +r.profit.toFixed(2), marge_pct: +r.margin.toFixed(1)
+        }
+      };
+    }
+    case 'calc_totals': {
+      const st = stats();
+      const top = Object.entries(st.byProduct).sort((x, y) => y[1].profit - x[1].profit).slice(0, 5)
+        .map(([nom, v]) => ({ objet: nom, benefice: +v.profit.toFixed(2), ventes: v.n }));
+      return {
+        act: { type: 'calc_totals' },
+        label: `Totaliser l’atelier — CA ${money(st.revenue)}, bénéfice ${money(st.profit)}, marge ${pct(st.marginPct)}`,
+        calc: {
+          type: 'totaux', ventes: st.count, ca: +st.revenue.toFixed(2), cout: +st.cost.toFixed(2),
+          frais_port: +st.shipped.toFixed(2), benefice: +st.profit.toFixed(2), marge_pct: +st.marginPct.toFixed(1),
+          mois_ca: +st.mRevenue.toFixed(2), mois_benefice: +st.mProfit.toFixed(2), mois_ventes: st.mCount,
+          heures_imprimees: +st.hoursPrinted.toFixed(1), meilleurs_objets: top
+        }
+      };
+    }
+    case 'calc_settings': {
+      const snap = aiSettingsSnapshot();
+      return {
+        act: { type: 'calc_settings' },
+        label: 'Relire les réglages du moteur de calcul',
+        calc: snap
+      };
     }
     case 'run_migration': {
       const values = a.values || a.settings || {};
@@ -2923,6 +3127,15 @@ function applyAIActions(actions) {
       }
       case 'delete_all':
         S[a.scope] = []; done.push('tout ' + a.scope + ' supprimé');
+        break;
+      /* --- calculs : exécutés par le moteur, aucun effet sur les données --- */
+      case 'calc_product':
+      case 'calc_product_sim':
+      case 'calc_sale':
+      case 'calc_totals':
+      case 'calc_settings':
+        aiLastCalc = a.calc || null;
+        done.push('calcul');
         break;
     }
   }
@@ -3032,6 +3245,38 @@ function aiErrorText(err, status) {
   return m || 'erreur inconnue';
 }
 
+/* Le modèle ne calcule rien : il commente le résultat produit par l'app.
+   Ce prompt est utilisé pour le second tour, après exécution du calcul. */
+function aiCommentPrompt(block) {
+  return `Tu es l'assistant de PrintProfit (atelier d'impression 3D). Le moteur de l'application vient de faire le calcul. Tu ne recalcules RIEN et tu n'inventes AUCUN chiffre : tu reprends ceux ci-dessous, tels quels.
+
+RÉSULTAT DU MOTEUR (source unique de vérité)
+  ${block}
+
+Consignes :
+- Réponds en JSON : {"message":"2 à 3 phrases en français","suggestions":["…"]}.
+- Cite les chiffres utiles avec les mêmes valeurs (tu peux arrondir à l'affichage, jamais modifier).
+- Explique ce que ça veut dire concrètement pour l'atelier : est-ce rentable, quel est le point faible, que faire ensuite.
+- Si le bénéfice ou la marge est faible (< 25 % de marge ou bénéfice < 1 €), dis-le franchement et propose une piste précise.
+- Pas de markdown, pas de liste à puces, pas de calcul.`;
+}
+
+/* Filet de sécurité : si le modèle ne répond pas, l'app écrit elle-même le
+   résumé chiffré — les chiffres viennent toujours du moteur. */
+function aiCalcFallbackText(c) {
+  if (!c) return 'Calcul effectué.';
+  if (c.type === 'objet') {
+    return `« ${c.objet} » : ${money(c.detail.revient)} de revient pour un prix de ${money(c.prix)}. Bénéfice ${money(c.benefice_unitaire)} par pièce, marge ${pct(c.marge_pct)}, soit ${money(c.benefice_par_heure)} par heure d'impression.`;
+  }
+  if (c.type === 'vente') {
+    return `Vente « ${c.objet} » : encaissé ${money(c.encaisse)}, bénéfice ${money(c.benefice)}, marge ${pct(c.marge_pct, 0)}.`;
+  }
+  if (c.type === 'totaux') {
+    return `${c.ventes} ventes pour ${money(c.ca)} de chiffre d'affaires et ${money(c.benefice)} de bénéfice (marge ${pct(c.marge_pct)}). Ce mois-ci : ${money(c.mois_benefice)}.`;
+  }
+  return 'Calcul effectué par l’app.';
+}
+
 async function sendAI(e) {
   if (e && typeof e.preventDefault === 'function') e.preventDefault();
   if (aiBusy) return;
@@ -3074,11 +3319,46 @@ async function sendAI(e) {
       catch (err) { errors.push(err.message); }
     }
 
-    let msg = String(out.message || '').trim();
+    /* Les demandes de calcul sont exécutées ICI, par le moteur de l'app :
+       l'IA ne produit aucun chiffre elle-même. */
+    const calcs = [];
+    let autoDone = 0;
+    for (const v of valid.slice()) {
+      if (!v.act.type.startsWith('calc_')) continue;
+      try { applyAIActions([v.act]); } catch (e) { errors.push(e.message); }
+      if (v.calc) { calcs.push(v.calc); autoDone++; }
+    }
+    const modifs = valid.filter(v => !v.act.type.startsWith('calc_'));
+    if (autoDone) aiLastCalc = calcs[calcs.length - 1];
+    /* les calculs sont déjà faits : seules les vraies modifications demandent
+       une confirmation */
+    if (modifs.length) aiPending = { actions: modifs };
+    else if (!autoDone && valid.length) aiPending = { actions: valid };
+
+    /* Deuxième tour : on renvoie au modèle les chiffres produits par le moteur
+       pour qu'il les commente. S'il n'a rien demandé de calculable, il n'y a
+       pas de second appel. */
+    let finalText = String(out.message || '').trim();
+    if (calcs.length) {
+      const block = calcs.map(aiCalcBlock).join('\n\n');
+      try {
+        const res2 = await aiPost([
+          { role: 'system', content: aiCommentPrompt(block) },
+          ...aiMessages.slice(-6).map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }))
+        ]);
+        if (res2.ok) {
+          const d2 = await res2.json();
+          const o2 = aiParse(d2.content);
+          if (o2 && String(o2.message || '').trim()) finalText = String(o2.message).trim();
+        }
+      } catch (e) { /* on garde le message initial si le commentaire échoue */ }
+      if (!finalText || !/[0-9]/.test(finalText)) finalText = aiCalcFallbackText(calcs[0]);
+    }
+
+    let msg = finalText;
     if (!valid.length && !msg) msg = 'Je n’ai pas compris la demande. Reformule-la ?';
     if (errors.length) msg += (msg ? '\n\n' : '') + 'Écarté : ' + errors.slice(0, 4).join(' ; ');
-    aiMessages.push({ role: 'assistant', text: msg || 'Prêt.' });
-    if (valid.length) aiPending = { actions: valid };
+    aiMessages.push({ role: 'assistant', text: msg || 'Prêt.', calc: calcs[0] || null, calcs: calcs.length > 1 ? calcs : null });
     aiSuggested = (Array.isArray(out.suggestions) ? out.suggestions : [])
       .map(s => String(s || '').trim()).filter(Boolean).slice(0, 3);
     /* actions prêtes à cliquer, et mémoire pour « applique la proposition 2 » */
@@ -3100,7 +3380,129 @@ async function sendAI(e) {
     const b = document.getElementById('ai-send');
     if (b) b.disabled = false;
     render();
+    /* la conversation doit être repeinte même si l'onglet affiché a changé
+       pendant la requête (sinon la bulle « Je réfléchis… » reste figée) */
+    paintAI();
   }
+}
+
+/* ---------------- calculs exécutés par l'app ---------------- */
+/* Point d'entrée unique : tous les chiffres montrés par l'assistant passent
+   par ici. Le modèle ne calcule rien lui-même. */
+function calculerObjet(product, opts) {
+  opts = opts || {};
+  const base = product || {
+    id: null, name: 'Simulation', filamentId: null, weightG: null,
+    printHours: 0, printMin: 0, qtyPerPlate: 1, postMin: null, packaging: null,
+    multiplier: 2.5, priceOverride: null, stock: 0, active: true
+  };
+  const sim = opts.sim;
+  let p = base;
+  if (sim) {
+    p = { ...base };
+    if (sim.weight !== null && sim.weight !== undefined) p.weightG = sim.weight === null ? null : Math.max(0, sim.weight);
+    if (sim.hours !== null && sim.hours !== undefined) p.printHours = Math.max(0, sim.hours);
+    if (sim.min !== null && sim.min !== undefined) p.printMin = Math.max(0, sim.min);
+    if (sim.qty !== null && sim.qty !== undefined) p.qtyPerPlate = Math.max(1, sim.qty);
+    if (sim.mult !== null && sim.mult !== undefined) p.multiplier = Math.max(1, sim.mult);
+    if (sim.postMin !== null && sim.postMin !== undefined) p.postMin = Math.max(0, sim.postMin);
+    if (sim.filamentId !== undefined && sim.filamentId !== null) p.filamentId = sim.filamentId;
+    p.priceOverride = null;
+  }
+  const c = computeProduct(p);
+  const qty = Math.max(1, Math.round(opts.qty ?? 1));
+  const price = (opts.price !== null && opts.price !== undefined && Number(opts.price) > 0) ? Number(opts.price) : c.price;
+  /* on recalcule les frais pour CE prix : les chiffres restent cohérents */
+  const st = S.settings;
+  const feePct = (Number(st.platformFeePct) + Number(st.paymentFeePct)) / 100;
+  const fees = price * feePct + (Number(st.paymentFeeFixed) || 0);
+  const net = price - fees;
+  const costUnit = c.costs.variable;
+  const profitUnit = net - costUnit;
+  const margin = net > 0 ? (profitUnit / net) * 100 : 0;
+  const gainHoraire = c.totalHours > 0 ? (profitUnit * qty) / c.totalHours : 0;
+  const resultat = {
+    type: 'objet',
+    objet: p.name,
+    hypothese: !!sim,
+    poids_g: +c.weight.toFixed(1),
+    poids_estime: !!c.weightEstimated,
+    filament: c.filamentName,
+    duree: hMin(c.plateHours / c.qty),
+    objets_par_plateau: c.qty,
+    quantite: qty,
+    detail: {
+      matiere: +c.costs.filament.toFixed(3),
+      rates: +c.costs.failWaste.toFixed(3),
+      electricite: +c.costs.elecWithFail.toFixed(3),
+      usure_exclue: +c.costs.wear.toFixed(3),
+      main_oeuvre_exclue: +c.costs.labor.toFixed(3),
+      emballage_exclu: +c.costs.packaging.toFixed(3),
+      revient: +costUnit.toFixed(3)
+    },
+    coefficient: +c.multiplier.toFixed(2),
+    prix: +price.toFixed(2),
+    prix_calcule: +c.price.toFixed(2),
+    prix_marge_cible: +c.priceMargin.toFixed(2),
+    frais_vente: +fees.toFixed(2),
+    net_encaisse: +net.toFixed(2),
+    benefice_unitaire: +profitUnit.toFixed(2),
+    benefice_total: +(profitUnit * qty).toFixed(2),
+    marge_pct: +margin.toFixed(1),
+    benefice_par_heure: +gainHoraire.toFixed(2),
+    prix_plancher: +(costUnit + fees).toFixed(2),
+    cout_par_gramme: c.weight > 0 ? +(costUnit / c.weight).toFixed(3) : null
+  };
+  return Object.assign(c, resultat);
+}
+
+/* Texte compact réinjecté dans la conversation : le modèle ne fera que
+   commenter ces chiffres, il n'a pas à les recalculer. */
+function aiCalcBlock(calc) {
+  if (!calc) return '';
+  if (calc.type === 'objet') {
+    return [
+      `objet: ${calc.objet}${calc.hypothese ? ' (hypothèse, pas encore au catalogue)' : ''}`,
+      `poids: ${num(calc.poids_g, 1)} g${calc.poids_estime ? ' (estimé d’après le temps)' : ''}`,
+      `duree: ${calc.duree}`,
+      `revient: ${num(calc.detail.revient, 3)} ${C()} = matière ${num(calc.detail.matiere, 3)} + ratés ${num(calc.detail.rates, 3)} + électricité ${num(calc.detail.electricite, 3)}`,
+      `hors coût: usure ${num(calc.detail.usure_exclue, 3)}, temps ${num(calc.detail.main_oeuvre_exclue, 3)}, emballage ${num(calc.detail.emballage_exclu, 3)}`,
+      `prix: ${money(calc.prix)} · frais de vente: ${money(calc.frais_vente)} · net encaissé: ${money(calc.net_encaisse)}`,
+      `bénéfice: ${money(calc.benefice_unitaire)} par pièce, ${money(calc.benefice_total)} pour ${calc.quantite} · marge: ${pct(calc.marge_pct)} · bénéfice/heure: ${money(calc.benefice_par_heure)}`,
+      `prix plancher (ne rien perdre): ${money(calc.prix_plancher)} · prix conseillé marge ${S.settings.targetMarginPct} %: ${money(calc.prix_marge_cible)}`
+    ].join('\n  ');
+  }
+  if (calc.type === 'vente') {
+    return `vente: ${calc.objet} du ${frDate(calc.date)} · qté ${calc.quantite} · encaissé ${money(calc.encaisse)} · frais ${money(calc.frais)} · coût ${money(calc.cout)} · port facturé ${money(calc.port_facture)} / réel ${money(calc.port_reel)} · bénéfice ${money(calc.benefice)} · marge ${pct(calc.marge_pct, 0)}`;
+  }
+  if (calc.type === 'totaux') {
+    return `totaux: ${calc.ventes} ventes · CA ${money(calc.ca)} · coût ${money(calc.cout)} · port réel ${money(calc.frais_port)} · bénéfice ${money(calc.benefice)} · marge ${pct(calc.marge_pct)}\n  ce mois-ci: CA ${money(calc.mois_ca)}, bénéfice ${money(calc.mois_benefice)}, ${calc.mois_ventes} ventes · ${num(calc.heures_imprimees, 1)} h imprimées\n  meilleurs objets: ${calc.meilleurs_objets.map(o => `${o.objet} ${money(o.benefice)} (${o.ventes})`).join(', ') || '—'}`;
+  }
+  if (calc.type === 'reglages') {
+    const r = calc.reglages;
+    return `réglages du moteur: électricité ${num(r.electricite_eur_kwh, 3)} €/kWh · imprimante ${r.puissance_w} W · débit ${num(r.debit_g_par_h, 1)} g/h · ratés ${num(r.taux_rate_pct, 0)} % · coefficient défaut ${num(r.coefficient_prix_defaut, 2)} · marge cible ${num(r.marge_cible_pct, 0)} % · frais ${num(r.commission_pct + r.frais_paiement_pct, 1)} % + ${num(r.frais_fixes_eur, 2)} € · postes comptés: matière+élec${r.postes.temps ? ' + temps' : ''}${r.postes.usure ? ' + usure' : ''}${r.postes.emballage ? ' + emballage' : ''}`;
+  }
+  return JSON.stringify(calc);
+}
+
+function aiSettingsSnapshot() {
+  const r = {
+    electricite_eur_kwh: S.settings.elecPricePerKwh, puissance_w: S.settings.printerWatts,
+    debit_g_par_h: S.settings.flowGPerHour, taux_rate_pct: S.settings.failRatePct,
+    coefficient_prix_defaut: 2.5, marge_cible_pct: S.settings.targetMarginPct,
+    commission_pct: S.settings.platformFeePct, frais_paiement_pct: S.settings.paymentFeePct,
+    frais_fixes_eur: S.settings.paymentFeeFixed, livraison_eur: S.settings.shippingCost,
+    cout_reel_port_eur: +(S.settings.shippingCost * 0.6).toFixed(2),
+    postes: { temps: !!S.settings.includeLabor, usure: !!S.settings.includeWear, emballage: !!S.settings.includePackaging }
+  };
+  return { type: 'reglages', reglages: r };
+}
+
+function latestSaleMatching(name) {
+  const n = aiNorm(name);
+  const found = S.sales.filter(s => { const x = aiNorm(s.productName); return x.includes(n) || n.includes(x); })
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  return found[0] || null;
 }
 
 /* ---------------- RENDU ---------------- */

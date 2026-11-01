@@ -68,6 +68,30 @@ Sans clé, le reste de l'application fonctionne normalement.
   courte, `openai/gpt-oss-120b` dès qu'il y a une action à produire. Une réponse
   JSON tronquée est réparée côté serveur (`repairJson`) avant d'arriver au client.
 
+## Assistant IA — les calculs sont faits par l'app
+
+Le modèle ne fait **aucune arithmétique**. Quand une question demande un chiffre
+(« combien je gagne sur le vase ? », « quel prix pour 60 % de marge ? »,
+« mon bénéfice total ? »), il renvoie une demande de calcul :
+
+| Action | Rôle |
+|---|---|
+| `calc_product` | coût, prix, bénéfice, marge d'un objet du catalogue (hypothèses possibles : poids, durée, coefficient, prix) |
+| `calc_product_sim` | même calcul pour un objet qui n'existe pas encore |
+| `calc_sale` | bénéfice réel d'une vente enregistrée |
+| `calc_totals` | CA, coût, bénéfice, marge, mois en cours, meilleurs objets |
+| `calc_settings` | relire la base de calcul (électricité, débit, ratés, frais, postes comptés) |
+
+1. L'app exécute la demande avec son propre moteur (`computeProduct`,
+   `saleProfit`, `stats`) — aucun effet sur les données, donc aucune
+   confirmation demandée.
+2. Les chiffres sont renvoyés au modèle dans un bloc « RÉSULTAT DU MOTEUR »
+   qu'il doit citer tels quels ; un second appel lui sert uniquement à les
+   commenter.
+3. Si ce second appel échoue, l'app écrit elle-même le résumé chiffré.
+4. Une carte « Calculé par l'app » affiche le détail ligne par ligne, avec un
+   bouton pour ouvrir le résultat dans le Simulateur.
+
 ## Assistant IA — ce qu'il sait faire
 
 - **Filaments** : ajouter (une ou plusieurs bobines), modifier, supprimer.
@@ -79,8 +103,8 @@ Sans clé, le reste de l'application fonctionne normalement.
   ne comptent pas), changer un statut, supprimer.
 - **Réglages** : machine, électricité, débit matière, frais de vente, TVA,
   postes de coût optionnels (`includeLabor`, `includeWear`, `includePackaging`).
-- **Analyse** : totaux, marges, stock, objets sous-margés, ventes à expédier —
-  il répond avec les chiffres réels de l'état transmis.
+- **Calculs** : tous les chiffres passent par le moteur (voir ci-dessus), jamais
+  par le modèle.
 - **Garde-fous** : les ids sont vérifiés, une suppression exige une seconde
   confirmation, une ligne de la proposition peut être retirée avant validation,
   et l'action confirmée reste annulable (dis « annule »).
@@ -88,9 +112,9 @@ Sans clé, le reste de l'application fonctionne normalement.
 Tests hors ligne (aucun appel réseau, aucune clé requise) :
 
 ```bash
-node .arena/test_agent.js && node .arena/test_agent2.js && node .arena/test_confirm.js
+node .arena/test_calc_ia.js && node .arena/test_agent.js && node .arena/test_confirm.js
 node .arena/test_chat.js && node .arena/test_poids.js && node .arena/test_couts.js
-node .arena/test_api.mjs
+node .arena/test_ui.js && node .arena/test_api.mjs
 ```
 - `.gitignore` — exclut la clé API et les artefacts Python
 
