@@ -258,7 +258,8 @@ const DEFAULTS = () => ({
     printerWatts: 120,        // W consommation moyenne imprimante
     elecPricePerKwh: 0.22,    // €/kWh  (= 22 c/kWh)
     // atelier
-    laborPerHour: 8,          // €/h valorisation de ton temps
+    laborPerHour: 8,          // €/h (info : valorisation indicative de ton temps)
+    includeLabor: false,      // compter ton temps dans le coût ? (non par défaut)
     postProcessMin: 10,       // min de préparation/finition par objet (défaut)
     failRatePct: 8,           // % de ratés (perte matière + temps)
     packagingCost: 0.60,      // € emballage par commande
@@ -390,8 +391,11 @@ function computeProduct(p, opts) {
   // --- totales ---
   // cash = ce que tu sors réellement (matière, énergie, usure machine, emballage)
   const cashCost = filamentCostWithFail + elecCostWithFail + wearCost + packaging;
-  // variable = cash + valorisation de ton temps (utilisé pour le prix conseillé)
-  const variable = cashCost + laborCost;
+  /* Ton temps n'est pas une dépense : par défaut il ne pèse pas sur le coût
+     (donc pas sur le bénéfice). Le réglage includeLabor permet de le compter
+     si tu veux te rémunérer un temps fixe dans le prix. */
+  const laborInCost = st.includeLabor ? laborCost : 0;
+  const variable = cashCost + laborInCost;
 
   // marge multipliée demandée sur l'objet
   const mult = Number(p.multiplier) || 2.5;
@@ -846,10 +850,13 @@ function paintSim() {
         <div class="line"><span>Usure + entretien machine</span><b>${money(c.wear)}</b></div>
         <div class="line"><span>Emballage</span><b>${money(c.packaging)}</b></div>
         <div class="line total"><span>Coût de revient réel</span><b>${money(c.cash)}</b></div>
-        <div class="line" style="opacity:.85"><span>+ ton temps (${num(c.postMin, 0)} min × ${money(st.laborPerHour)}/h)</span><b>${money(c.labor)}</b></div>
-        <div class="line"><span style="color:var(--muted)">Coût complet (base du prix conseillé)</span><b style="color:var(--muted)">${money(c.variable)}</b></div>
+        ${st.includeLabor ? `<div class="line" style="opacity:.85"><span>+ ton temps (${num(c.postMin, 0)} min × ${money(st.laborPerHour)}/h)</span><b>${money(c.labor)}</b></div>
+        <div class="line"><span style="color:var(--muted)">Coût complet (base du prix conseillé)</span><b style="color:var(--muted)">${money(c.variable)}</b></div>`
+        : `<div class="line" style="opacity:.55"><span>Ton temps (${num(c.postMin, 0)} min) — non compté, il reste dans ton bénéfice</span><b>—</b></div>`}
       </div>
-      <div class="hint" style="margin-top:6px">Le <b>coût de revient réel</b> est ce que tu débourses. Ton temps est compté à part : c'est ta rémunération, pas une dépense.</div>
+      <div class="hint" style="margin-top:6px">${st.includeLabor
+        ? 'Ton temps est compté dans le coût : le prix conseillé le rémunère.'
+        : 'Seuls tes <b>débours réels</b> entrent dans le coût. Ton temps, c’est ton bénéfice.'}</div>
       <div class="calcbox" style="border-color:rgba(56,189,248,.4)">
         <div class="line"><span>Prix conseillé (coût × ${num(sim.mult, 2)})</span><b>${money(sim.priceFees)}</b></div>
         <div class="line"><span>Prix marge ${num(st.targetMarginPct, 0)} %</span><b>${money(sim.priceMargin)}</b></div>
@@ -1219,7 +1226,7 @@ function prodPreviewHTML(c) {
     <div class="line"><span>Emballage</span><b>${money(c.costs.packaging)}</b></div>
     <div class="line"><span>Perte ratés ${num(st.failRatePct, 0)} %</span><b>${money(c.costs.failWaste)}</b></div>
     <div class="line total"><span>Coût de revient réel</span><b>${money(c.costs.cash)}</b></div>
-    <div class="line" style="opacity:.85"><span>+ ton temps ${num(c.costs.postMin, 0)} min</span><b>${money(c.costs.labor)}</b></div>
+    ${st.includeLabor ? `<div class="line" style="opacity:.85"><span>+ ton temps ${num(c.costs.postMin, 0)} min</span><b>${money(c.costs.labor)}</b></div>` : ''}
     <div class="line"><span>Prix conseillé (× ${num(c.multiplier, 2)})</span><b>${money(c.priceFees)}</b></div>
     <div class="line price"><span>Prix de vente</span><b>${money(c.price)}</b></div>
     <div class="line"><span>Bénéfice net</span><b class="${c.profit >= 0 ? 'pos' : 'neg'}">${money(c.profit)}</b></div>
@@ -1714,10 +1721,16 @@ function viewSettings() {
       <div class="panel" style="margin-bottom:14px">
         <h3><span class="dot" style="background:#f472b6"></span> Atelier & main d'œuvre</h3>
         <div class="row3">
-          ${fld('laborPerHour', 'Ton temps €/h', st.laborPerHour, 0.5)}
           ${fld('postProcessMin', 'Finition min. (défaut)', st.postProcessMin, 5)}
           ${fld('failRatePct', 'Taux de ratés %', st.failRatePct, 1, '5–15 % est réaliste')}
+          ${fld('laborPerHour', 'Ton temps €/h (info)', st.laborPerHour, 0.5)}
         </div>
+        <label style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;margin-top:10px;cursor:pointer">
+          <input type="checkbox" id="st_includeLabor" ${st.includeLabor ? 'checked' : ''} style="width:16px;height:16px;accent-color:#c8f36d;margin-top:2px">
+          <span>Compter mon temps dans le coût de revient
+            <div class="hint" style="margin-top:2px">Décoché : seuls tes débours réels comptent, ton temps reste dans ton bénéfice. Coché : le prix conseillé te rémunère aussi.</div>
+          </span>
+        </label>
         <div class="row2">
           ${fld('packagingCost', 'Emballage € / objet', st.packagingCost, 0.1)}
           ${fld('shippingCost', 'Livraison facturée €', st.shippingCost, 0.5)}
@@ -1774,6 +1787,8 @@ function saveSettings() {
     const el = document.getElementById('st_' + k); if (el) st[k] = +el.value || 0;
   });
   st.vatEnabled = document.getElementById('st_vatEnabled').checked;
+  const incLabor = document.getElementById('st_includeLabor');
+  if (incLabor) st.includeLabor = incLabor.checked;
   save(); render(); toast('Réglages enregistrés ✓');
 }
 
@@ -2206,6 +2221,7 @@ function validateAI(a) {
         } else patch[k] = String(a[k]).slice(0, 120);
       }
       if (typeof a.vatEnabled === 'boolean') patch.vatEnabled = a.vatEnabled;
+      if (typeof a.includeLabor === 'boolean') patch.includeLabor = a.includeLabor;
       if (!Object.keys(patch).length) throw Error('aucun réglage indiqué');
       const before = Object.entries(patch).map(([k, v]) => `${k}: ${S.settings[k]} → ${v}`).join(', ');
       return { act: { type: 'update_settings', patch }, label: `Modifier les réglages — ${before}` };
@@ -2334,7 +2350,7 @@ Format exact :
 6. {"type":"add_products","items":[ ...plusieurs add_product... ]}
 7. {"type":"update_product","id":str, ...champs à changer...}
 8. {"type":"delete_product","id":str}
-9. {"type":"update_settings","elecPricePerKwh":nb?,"laborPerHour":nb?,"failRatePct":nb?,"printerWatts":nb?,"packagingCost":nb?,"shippingCost":nb?,"platformFeePct":nb?,"paymentFeePct":nb?,"paymentFeeFixed":nb?,"targetMarginPct":nb?,"vatPct":nb?,"vatEnabled":bool?,"shopName":str?,"printerName":str?}
+9. {"type":"update_settings","elecPricePerKwh":nb?,"laborPerHour":nb?,"failRatePct":nb?,"printerWatts":nb?,"packagingCost":nb?,"shippingCost":nb?,"platformFeePct":nb?,"paymentFeePct":nb?,"paymentFeeFixed":nb?,"targetMarginPct":nb?,"vatPct":nb?,"vatEnabled":bool?,"includeLabor":bool?,"shopName":str?,"printerName":str?}
 10. {"type":"delete_sales","ids":[str,...]}
 
 RÈGLES IMPORTANTES
