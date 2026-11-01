@@ -379,14 +379,19 @@ function computeProduct(p, opts) {
   const wearCost = machineCost + maintCost;
 
   // --- main d'œuvre (préparation + finition) ---
+  // Ce n'est pas un débours : c'est ton temps. On l'isole pour pouvoir
+  // présenter un « coût de revient » comparable à un calcul à la main.
   const postMin = Number(p.postMin ?? st.postProcessMin) || 0;
   const laborCost = (postMin / 60) * st.laborPerHour;
 
   // --- emballage ---
   const packaging = Number(p.packaging ?? st.packagingCost) || 0;
 
-  // --- totale ---
-  const variable = filamentCostWithFail + elecCostWithFail + wearCost + laborCost + packaging;
+  // --- totales ---
+  // cash = ce que tu sors réellement (matière, énergie, usure machine, emballage)
+  const cashCost = filamentCostWithFail + elecCostWithFail + wearCost + packaging;
+  // variable = cash + valorisation de ton temps (utilisé pour le prix conseillé)
+  const variable = cashCost + laborCost;
 
   // marge multipliée demandée sur l'objet
   const mult = Number(p.multiplier) || 2.5;
@@ -400,7 +405,7 @@ function computeProduct(p, opts) {
   // prix pour que net = priceRaw
   let priceFees = (priceRaw + feeFixed) / (1 - feePct);
 
-  // prix conseillé par marge cible : coût / (1 - marge)
+  // prix conseillé par marge cible : coût (temps valorisé inclus) / (1 - marge)
   const targetM = (Number(st.targetMarginPct) || 0) / 100;
   let priceMargin = (variable + feeFixed) / Math.max(0.05, (1 - targetM - feePct));
 
@@ -440,7 +445,8 @@ function computeProduct(p, opts) {
       filament: filamentCost, filamentWithFail: filamentCostWithFail, failWaste: filamentCostWithFail - filamentCost,
       kWh, elec: elecCost, elecWithFail: elecCostWithFail,
       machine: machineCost, maintenance: maintCost, wear: wearCost,
-      labor: laborCost, postMin, packaging, variable
+      labor: laborCost, postMin, packaging,
+      cash: cashCost, variable
     },
     multiplier: mult,
     priceRaw, priceFees, priceMargin, price, psych,
@@ -838,10 +844,12 @@ function paintSim() {
         <div class="line"><span>Perte ratés (${num(st.failRatePct, 0)} %)</span><b>${money(c.failWaste)}</b></div>
         <div class="line"><span>Électricité (${num(c.kWh, 3)} kWh)</span><b>${money(c.elecWithFail)}</b></div>
         <div class="line"><span>Usure + entretien machine</span><b>${money(c.wear)}</b></div>
-        <div class="line"><span>Main d'œuvre (${num(c.postMin, 0)} min)</span><b>${money(c.labor)}</b></div>
         <div class="line"><span>Emballage</span><b>${money(c.packaging)}</b></div>
-        <div class="line total"><span>Prix de revient</span><b>${money(c.variable)}</b></div>
+        <div class="line total"><span>Coût de revient réel</span><b>${money(c.cash)}</b></div>
+        <div class="line" style="opacity:.85"><span>+ ton temps (${num(c.postMin, 0)} min × ${money(st.laborPerHour)}/h)</span><b>${money(c.labor)}</b></div>
+        <div class="line"><span style="color:var(--muted)">Coût complet (base du prix conseillé)</span><b style="color:var(--muted)">${money(c.variable)}</b></div>
       </div>
+      <div class="hint" style="margin-top:6px">Le <b>coût de revient réel</b> est ce que tu débourses. Ton temps est compté à part : c'est ta rémunération, pas une dépense.</div>
       <div class="calcbox" style="border-color:rgba(56,189,248,.4)">
         <div class="line"><span>Prix conseillé (coût × ${num(sim.mult, 2)})</span><b>${money(sim.priceFees)}</b></div>
         <div class="line"><span>Prix marge ${num(st.targetMarginPct, 0)} %</span><b>${money(sim.priceMargin)}</b></div>
@@ -1073,7 +1081,7 @@ function prodRowsHTML(list) {
       <td style="font-size:12px"><span class="swatch" style="background:${readableColor(c.filamentColor)}"></span>${esc(c.filamentName)}</td>
       <td class="num">${num(c.weight, 0)} g</td>
       <td class="num" style="white-space:nowrap">${hMin(c.hoursPerObject)}</td>
-      <td class="num">${money(c.costs.variable)}</td>
+      <td class="num" title="matière + énergie + usure + emballage (hors ton temps)">${money(c.costs.cash)}</td>
       <td class="num"><b style="color:var(--acc2)">${money(c.price)}</b></td>
       <td class="num ${c.profit >= 0 ? 'pos' : 'neg'}"><b>${money(c.profit)}</b></td>
       <td class="num"><span class="pill ${c.marginPct >= 50 ? 'ok' : c.marginPct >= 25 ? 'warn' : 'bad'}">${pct(c.marginPct, 0)}</span></td>
@@ -1087,13 +1095,13 @@ function prodRowsHTML(list) {
 
 function prodKpisHTML(list) {
   const rows = list.map(p => ({ p, c: computeProduct(p) }));
-  const totalCost = rows.reduce((a, r) => a + r.c.costs.variable, 0);
+  const totalCost = rows.reduce((a, r) => a + r.c.costs.cash, 0);
   const avgPrice = rows.length ? rows.reduce((a, r) => a + r.c.price, 0) / rows.length : 0;
   const avgMargin = rows.length ? rows.reduce((a, r) => a + r.c.marginPct, 0) / rows.length : 0;
   const totalHours = rows.reduce((a, r) => a + r.c.totalHours, 0);
   return `
     <div class="card kpi"><div class="lbl">Objets au catalogue</div><div class="val">${S.products.length}</div><div class="sub2">${S.products.filter(p => p.active).length} en vente</div></div>
-    <div class="card kpi"><div class="lbl">Prix de revient moyen</div><div class="val warnc">${money(rows.length ? totalCost / rows.length : 0)}</div><div class="sub2">matière + énergie + usure</div></div>
+    <div class="card kpi"><div class="lbl">Coût de revient moyen</div><div class="val warnc">${money(rows.length ? totalCost / rows.length : 0)}</div><div class="sub2">matière + énergie + usure + emballage</div></div>
     <div class="card kpi"><div class="lbl">Prix moyen affiché</div><div class="val bluec">${money(avgPrice)}</div><div class="sub2">marge nette moy. ${pct(avgMargin)}</div></div>
     <div class="card kpi"><div class="lbl">Temps total catalogue</div><div class="val">${num(totalHours, 1)} h</div><div class="sub2">si tu imprimes 1 de chaque</div></div>`;
 }
@@ -1208,9 +1216,10 @@ function prodPreviewHTML(c) {
     <div class="line"><span>Matière ${num(c.weight, 0)} g</span><b>${money(c.costs.filament)}</b></div>
     <div class="line"><span>Électricité ${num(c.costs.kWh, 3)} kWh</span><b>${money(c.costs.elecWithFail)}</b></div>
     <div class="line"><span>Usure machine + entretien</span><b>${money(c.costs.wear)}</b></div>
-    <div class="line"><span>Main d'œuvre + emballage</span><b>${money(c.costs.labor + c.costs.packaging)}</b></div>
+    <div class="line"><span>Emballage</span><b>${money(c.costs.packaging)}</b></div>
     <div class="line"><span>Perte ratés ${num(st.failRatePct, 0)} %</span><b>${money(c.costs.failWaste)}</b></div>
-    <div class="line total"><span>Prix de revient</span><b>${money(c.costs.variable)}</b></div>
+    <div class="line total"><span>Coût de revient réel</span><b>${money(c.costs.cash)}</b></div>
+    <div class="line" style="opacity:.85"><span>+ ton temps ${num(c.costs.postMin, 0)} min</span><b>${money(c.costs.labor)}</b></div>
     <div class="line"><span>Prix conseillé (× ${num(c.multiplier, 2)})</span><b>${money(c.priceFees)}</b></div>
     <div class="line price"><span>Prix de vente</span><b>${money(c.price)}</b></div>
     <div class="line"><span>Bénéfice net</span><b class="${c.profit >= 0 ? 'pos' : 'neg'}">${money(c.profit)}</b></div>
@@ -1296,7 +1305,7 @@ function viewShop() {
         <div class="split" style="margin-top:auto;padding-top:8px">
           <div>
             <div class="price">${money(c.price)}</div>
-            <div class="cost">revient ${money(c.costs.variable)} · marge ${pct(c.marginPct, 0)}</div>
+            <div class="cost">revient ${money(c.costs.cash)} · marge ${pct(c.marginPct, 0)}</div>
           </div>
           <button class="btn primary sm" onclick="addCart('${p.id}')">＋</button>
         </div>
