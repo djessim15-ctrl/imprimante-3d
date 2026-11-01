@@ -260,6 +260,7 @@ const DEFAULTS = () => ({
     // atelier
     laborPerHour: 8,          // €/h (info : valorisation indicative de ton temps)
     includeLabor: false,      // compter ton temps dans le coût ? (non par défaut)
+    flowGPerHour: 12,         // débit matière moyen (g/h) pour estimer un poids sans le slicer
     includeWear: false,       // compter l'usure machine + entretien ? (non)
     includePackaging: false,  // compter l'emballage ? (non)
     postProcessMin: 10,       // min de préparation/finition par objet (défaut)
@@ -332,6 +333,23 @@ function save() {
 
 /* ---------------- Coût filament ---------------- */
 // Prix au gramme d'un filament, basé sur la bobine
+/* Estime le poids d'un objet à partir du seul temps d'impression.
+   Attention : c'est une estimation. À temps égal, un objet plein (mode vase,
+   100 % de remplissage, grosses pièces) pèse beaucoup plus qu'un objet creux.
+   Le vrai poids reste celui affiché par le slicer. */
+function debitFilament(f) {
+  const st = S.settings || {};
+  const parDefaut = Number(st.flowGPerHour) || 12;
+  const perso = f && Number(f.flowGPerHour) > 0 ? Number(f.flowGPerHour) : null;
+  return perso || parDefaut;
+}
+
+function estimatedWeightG(hours, filamentId) {
+  const h = Number(hours) || 0;
+  if (h <= 0) return 0;
+  return h * debitFilament(getFilament(filamentId));
+}
+
 function filamentPricePerGram(f) {
   if (!f || !f.spoolWeight) return 0;
   return (f.spoolPrice || 0) / (f.spoolWeight || 1);
@@ -363,7 +381,11 @@ function computeProduct(p, opts) {
   const hoursPerObject = plateHours / qty;
 
   // --- matière ---
-  const g = Number(p.weightG) || 0;
+  // Sans poids saisi, on estime à partir du temps et du débit du filament.
+  const gSaisi = Number(p.weightG) || 0;
+  const gEstime = gSaisi > 0 ? 0 : estimatedWeightG(hoursPerObject, p.filamentId);
+  const g = gSaisi > 0 ? gSaisi : gEstime;
+  const poidsEstime = gSaisi <= 0 && gEstime > 0;
   const ppg = filamentPricePerGram(fil);
   const filamentCost = g * ppg;
 
@@ -450,7 +472,8 @@ function computeProduct(p, opts) {
 
   return {
     qty, plateHours, hoursPerObject, totalHours,
-    weight: g, pricePerGram: ppg, filamentName: fil ? fil.name : '— (aucun filament)',
+    weight: g, weightEstimated: poidsEstime, weightDeclared: gSaisi,
+    pricePerGram: ppg, filamentName: fil ? fil.name : '— (aucun filament)',
     filamentColor: fil ? fil.colorHex : '#555',
     costs: {
       filament: filamentCost, filamentWithFail: filamentCostWithFail, failWaste: filamentCostWithFail - filamentCost,
@@ -746,6 +769,7 @@ function simSet(key, value) {
   if (key === 'qty') simState.qty = Math.max(1, +value || 1);
   else if (key === 'mult') simState.mult = Math.max(1, +value || 1);
   else if (key === 'filamentId') simState.filamentId = value || null;
+  else if (key === 'weight') simState.weight = value === '' ? null : Math.max(0, +value || 0);
   else simState[key] = +value || 0;
   viewCalc();
 }
@@ -776,6 +800,7 @@ function applySalesFilter() {
 
 /* ---------------- Simulateur (calcul rapide) ---------------- */
 let simState = { weight: 50, hours: 4, min: 0, filamentId: null, qty: 1, mult: 2.5, postMin: 10 };
+/* poids vide (null) = estimation automatique depuis le temps d'impression */
 
 function viewCalc() {
   const st = S.settings;
@@ -801,8 +826,8 @@ function viewCalc() {
           </select></div>
         <div class="row2">
           <div class="field"><label>Poids de l'objet (g)</label>
-            <input type="number" step="1" min="0" value="${simState.weight}" oninput="simSet('weight',this.value)">
-            <div class="hint">Poids réel sorti de la slicer (Cura / Orca)</div></div>
+            <input type="number" step="1" min="0" value="${simState.weight ?? ''}" placeholder="vide = estimé" oninput="simSet('weight',this.value)">
+            <div class="hint">Laisse vide pour l'estimer depuis le temps (débit ${num(debitFilament(curFil), 1)} g/h — approximatif)</div></div>
           <div class="field"><label>Objets sur le plateau</label>
             <input type="number" step="1" min="1" value="${simState.qty}" oninput="simSet('qty',this.value)"></div>
         </div>
@@ -851,7 +876,8 @@ function paintSim() {
   const c = sim.costs;
   host.innerHTML = `
       <div class="calcbox">
-        <div class="line"><span>Matière (${num(sim.weight, 1)} g × ${money(sim.pricePerGram, 3)}/g)</span><b>${money(c.filament)}</b></div>
+        ${sim.weightEstimated ? `<div class="tip" style="margin:0 0 10px;font-size:11.5px">Poids estimé à <b>${num(sim.weight, 0)} g</b> d'après le temps d'impression. Une valeur réelle sortie du slicer sera toujours plus juste.</div>` : ''}
+        <div class="line"><span>Matière (${num(sim.weight, 1)} g${sim.weightEstimated ? ' estimés' : ''} × ${money(sim.pricePerGram, 3)}/g)</span><b>${money(c.filament)}</b></div>
         <div class="line"><span>Perte ratés (${num(st.failRatePct, 0)} %)</span><b>${money(c.failWaste)}</b></div>
         <div class="line"><span>Électricité (${num(c.kWh, 3)} kWh)</span><b>${money(c.elecWithFail)}</b></div>
         ${st.includeWear ? `<div class="line"><span>Usure + entretien machine</span><b>${money(c.wear)}</b></div>` : ''}
@@ -998,6 +1024,11 @@ function editFil(id) {
           <input type="number" id="f_rem" value="${f.remaining ?? 0}" step="10" min="0">
           <div class="hint">Poids réel estimé de la bobine entamée</div></div>
       </div>
+      <div class="field"><label>Débit matière de ce filament (g/h)</label>
+        <input type="number" id="f_flow" value="${f.flowGPerHour ?? ''}" step="0.5" min="0" placeholder="${S.settings.flowGPerHour}">
+        <div class="hint">Facultatif. Vide = débit général. Certaines matières coulent plus vite (PETG, bois).</div></div>
+      <div style="display:none">
+      </div>
       <div class="field"><label>Note</label><input id="f_note" value="${esc(f.note || '')}" placeholder="Température, réglages, lot…"></div>
       <div class="calcbox" id="filPreview"></div>
     </div>
@@ -1043,7 +1074,8 @@ function saveFil(id) {
   const data = {
     name, material: g('f_mat'), brand: g('f_brand').trim(),
     colorHex, spoolWeight: +g('f_sw') || 1000, spoolPrice: +g('f_sp') || 0,
-    stockSpools: +g('f_stock') || 0, remaining: +g('f_rem') || 0, note: g('f_note')
+    stockSpools: +g('f_stock') || 0, remaining: +g('f_rem') || 0, note: g('f_note'),
+    flowGPerHour: g('f_flow') === '' ? null : +g('f_flow') || null
   };
   if (id) Object.assign(S.filaments.find(f => f.id === id), data);
   else S.filaments.push({ id: uid(), ...data });
@@ -1187,7 +1219,9 @@ function editProduct(id) {
           ${S.filaments.map(f => `<option value="${f.id}" ${f.id === p.filamentId ? 'selected' : ''}>${esc(f.name)} · ${money(filamentPricePerGram(f) * 1000)}/kg</option>`).join('')}
         </select></div>
       <div class="row3">
-        <div class="field"><label>Poids (g)</label><input type="number" id="p_w" value="${p.weightG}" step="1" min="0" oninput="prodLive('${id}')"></div>
+        <div class="field"><label>Poids (g)</label>
+          <input type="number" id="p_w" value="${p.weightG ?? ''}" step="1" min="0" placeholder="vide = estimé" oninput="prodLive('${id}')">
+          <div class="hint">Vide = estimé depuis le temps (${num(debitFilament(getFilament(p.filamentId)), 1)} g/h)</div></div>
         <div class="field"><label>Temps (h)</label><input type="number" id="p_h" value="${p.printHours}" step="0.25" min="0" oninput="prodLive('${id}')"></div>
         <div class="field"><label>+ min</label><input type="number" id="p_m" value="${p.printMin || 0}" step="5" min="0" oninput="prodLive('${id}')"></div>
       </div>
@@ -1227,7 +1261,7 @@ function editProduct(id) {
 function prodPreviewHTML(c) {
   const st = S.settings;
   return `
-    <div class="line"><span>Matière ${num(c.weight, 0)} g</span><b>${money(c.costs.filament)}</b></div>
+    <div class="line"><span>Matière ${num(c.weight, 0)} g${c.weightEstimated ? ' (estimé)' : ''}</span><b>${money(c.costs.filament)}</b></div>
     <div class="line"><span>Électricité ${num(c.costs.kWh, 3)} kWh</span><b>${money(c.costs.elecWithFail)}</b></div>
     ${st.includeWear ? `<div class="line"><span>Usure machine + entretien</span><b>${money(c.costs.wear)}</b></div>` : ''}
     ${st.includePackaging ? `<div class="line"><span>Emballage</span><b>${money(c.costs.packaging)}</b></div>` : ''}
@@ -1244,7 +1278,7 @@ function readProductForm() {
   const g = i => document.getElementById(i).value;
   const p = {
     name: g('p_name').trim(), sku: g('p_sku'), description: g('p_desc'),
-    filamentId: g('p_fil'), weightG: +g('p_w') || 0,
+    filamentId: g('p_fil'), weightG: g('p_w') === '' ? null : +g('p_w') || 0,
     printHours: +g('p_h') || 0, printMin: +g('p_m') || 0,
     qtyPerPlate: Math.max(1, +g('p_q') || 1),
     postMin: g('p_post') === '' ? null : +g('p_post') || 0,
@@ -1732,6 +1766,8 @@ function viewSettings() {
           ${fld('failRatePct', 'Taux de ratés %', st.failRatePct, 1, '5–15 % est réaliste')}
           ${fld('laborPerHour', 'Ton temps €/h (info)', st.laborPerHour, 0.5)}
         </div>
+        ${fld('flowGPerHour', 'Débit matière (g/h)', st.flowGPerHour, 0.5,
+          'Sert à estimer un poids quand tu ne le saisis pas. Ordre de grandeur : 10 à 15 g/h creux, 25 à 35 g/h plein')}
         <h3 style="font-size:12px;color:var(--muted);margin:16px 0 4px">CE QUI ENTRE DANS LE COÛT</h3>
         <div class="hint" style="margin-bottom:8px">Matière et électricité sont toujours comptées. Coche ce que tu veux y ajouter.</div>
         ${[['includeWear', 'Usure machine + entretien', `${money(st.printerPrice)} / ${num(st.printerLifeHours, 0)} h + ${money(st.maintenancePerHour)}/h`],
@@ -1797,7 +1833,7 @@ function saveSettings() {
   });
   ['printerPrice', 'printerLifeHours', 'maintenancePerHour', 'printerWatts', 'elecPricePerKwh', 'laborPerHour',
    'postProcessMin', 'failRatePct', 'packagingCost', 'shippingCost', 'platformFeePct', 'paymentFeePct',
-   'paymentFeeFixed', 'targetMarginPct', 'vatPct'].forEach(k => {
+   'paymentFeeFixed', 'targetMarginPct', 'vatPct', 'flowGPerHour'].forEach(k => {
     const el = document.getElementById('st_' + k); if (el) st[k] = +el.value || 0;
   });
   st.vatEnabled = document.getElementById('st_vatEnabled').checked;
@@ -2160,14 +2196,15 @@ function validateAI(a) {
       const w = nb(a.weightG);
       const h = nb(a.printHours) ?? 0;
       const m = nb(a.printMin) ?? 0;
-      if (w === null || w <= 0) throw Error(`poids manquant pour « ${name} »`);
       if (h <= 0 && m <= 0) throw Error(`temps d’impression manquant pour « ${name} »`);
+      /* sans poids, on estime depuis le temps : l'objet reste utilisable */
+      const poidsEstime = (w === null || w <= 0);
       let filId = a.filamentId;
       if (filId && !findFil(filId)) throw Error(`filament inconnu (id ${filId})`);
       const price = nb(a.priceOverride);
       return {
         act: {
-          type: 'add_product', name, filamentId: filId || null, weightG: w,
+          type: 'add_product', name, filamentId: filId || null, weightG: poidsEstime ? null : w,
           printHours: h, printMin: m, qtyPerPlate: Math.max(1, nb(a.qtyPerPlate) ?? 1),
           postMin: nb(a.postMin), packaging: nb(a.packaging),
           multiplier: nb(a.multiplier) ?? 2.5,
@@ -2176,7 +2213,7 @@ function validateAI(a) {
           sku: (a.sku || '').toString().slice(0, 40),
           emoji: ICONS[a.emoji] ? a.emoji : 'cube', active: a.active === false ? false : true
         },
-        label: `Créer « ${name} » — ${w} g, ${h} h ${m} min${price ? ', prix ' + price + ' €' : ', prix automatique'}`
+        label: `Créer « ${name} » — ${poidsEstime ? 'poids estimé d’après le temps' : w + ' g'}, ${h} h ${m} min${price ? ', prix ' + price + ' €' : ', prix automatique'}`
       };
     }
     case 'add_products': {
@@ -2225,7 +2262,7 @@ function validateAI(a) {
         printerPrice: 'num', printerLifeHours: 'num', maintenancePerHour: 'num', printerWatts: 'num',
         elecPricePerKwh: 'num', laborPerHour: 'num', postProcessMin: 'num', failRatePct: 'num',
         packagingCost: 'num', shippingCost: 'num', platformFeePct: 'num', paymentFeePct: 'num',
-        paymentFeeFixed: 'num', targetMarginPct: 'num', vatPct: 'num'
+        paymentFeeFixed: 'num', targetMarginPct: 'num', vatPct: 'num', flowGPerHour: 'num'
       };
       const patch = {};
       for (const [k, kind] of Object.entries(allowed)) {
@@ -2368,7 +2405,7 @@ Format exact :
 6. {"type":"add_products","items":[ ...plusieurs add_product... ]}
 7. {"type":"update_product","id":str, ...champs à changer...}
 8. {"type":"delete_product","id":str}
-9. {"type":"update_settings","elecPricePerKwh":nb?,"laborPerHour":nb?,"failRatePct":nb?,"printerWatts":nb?,"packagingCost":nb?,"shippingCost":nb?,"platformFeePct":nb?,"paymentFeePct":nb?,"paymentFeeFixed":nb?,"targetMarginPct":nb?,"vatPct":nb?,"vatEnabled":bool?,"includeLabor":bool?,"includeWear":bool?,"includePackaging":bool?,"shopName":str?,"printerName":str?}
+9. {"type":"update_settings","elecPricePerKwh":nb?,"laborPerHour":nb?,"failRatePct":nb?,"printerWatts":nb?,"packagingCost":nb?,"shippingCost":nb?,"platformFeePct":nb?,"paymentFeePct":nb?,"paymentFeeFixed":nb?,"targetMarginPct":nb?,"vatPct":nb?,"vatEnabled":bool?,"includeLabor":bool?,"includeWear":bool?,"includePackaging":bool?,"flowGPerHour":nb?,"shopName":str?,"printerName":str?}
 10. {"type":"delete_sales","ids":[str,...]}
 
 RÈGLES IMPORTANTES
@@ -2378,7 +2415,9 @@ RÈGLES IMPORTANTES
 - Couleurs : code hexadécimal réaliste (noir #111827, blanc #ffffff, rouge #ef4444, bleu #3b82f6, vert #22c55e, gris #9ca3af, or #fbbf24, transparent/naturel #e5e7eb).
 - Matières : PLA, PLA+, PETG, ABS, ASA, TPU, Nylon, PC, PVA.
 - Si une info indispensable manque (poids, temps, prix d'un objet), pose UNE question dans "message" et renvoie "actions":[].
-- N'invente pas le poids ou le temps d'impression d'un objet : demande-les.
+- Le poids d'un objet est FACULTATIF : sans poids, l'app l'estime depuis le temps d'impression et le débit matière. Si l'utilisateur ne donne que le temps, crée l'objet sans weightG.
+- En revanche, n'invente jamais un temps d'impression : s'il manque, demande-le.
+- Le débit matière par défaut est de ${S.settings.flowGPerHour} g/h ; tu peux le changer avec update_settings (flowGPerHour).
 - Pour une question d'analyse (marges, stock), "actions":[] et réponds dans "message" avec des chiffres issus de l'état.
 - Ne dis jamais que c'est déjà fait : les actions seront proposées puis confirmées.
 - Les nombres sont des nombres JSON, pas des chaînes.
