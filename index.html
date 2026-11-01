@@ -1829,9 +1829,25 @@ function paintAI(){let el=document.getElementById('ai-messages');if(!el)return;
 function aiExample(b){document.getElementById('ai-input').value=b.textContent;document.getElementById('ai-input').focus()}
 function cancelAI(){aiPending=null;aiMessages.push({role:'assistant',text:'Modification annulée.'});paintAI()}
 function aiState(){return {filaments:S.filaments.map(f=>({id:f.id,nom:f.name,matiere:f.material,couleur:f.colorHex,poids_bobine_g:f.spoolWeight,prix_bobine_eur:f.spoolPrice,stock_bobines:f.stockSpools})),objets:S.products.map(p=>({id:p.id,nom:p.name,filament_id:p.filamentId,poids_g:p.weightG,heures:p.printHours,minutes:p.printMin,prix_manuel_eur:p.priceOverride,prix_calcule_eur:+computeProduct(p).price.toFixed(2),marge_pct:+computeProduct(p).marginPct.toFixed(1)})),reglages:{electricite_eur_kwh:S.settings.elecPricePerKwh,puissance_w:S.settings.printerWatts}}}
+/* Appel de l'assistant : on essaie le serveur courant, puis l'API déployée si
+   elle est injoignable (aperçu local sans accès réseau à Groq, par exemple). */
+const AI_REMOTE = 'https://printprofit-eight.vercel.app/api/chat';
+async function aiFetch(messages){
+  const body = JSON.stringify({ messages });
+  const opts = { method:'POST', headers:{ 'Content-Type':'application/json' }, body };
+  let first;
+  try { first = await fetch('/api/chat', opts); }
+  catch(e) { return fetch(AI_REMOTE, opts); }
+  if (first.status !== 500 && first.status !== 404) return first;
+  try {
+    const second = await fetch(AI_REMOTE, opts);
+    if (second.ok) return second;
+  } catch(e) {}
+  return first;
+}
 async function sendAI(e){e.preventDefault();if(aiBusy)return;if(aiPending){toast('Confirme ou annule d’abord la modification proposée.');return}let input=document.getElementById('ai-input'),text=input.value.trim();if(!text)return;input.value='';aiMessages.push({role:'user',text});aiBusy=true;document.getElementById('ai-send').disabled=true;paintAI();
  const system=`Tu es un assistant français de gestion d'atelier 3D. Réponds UNIQUEMENT en JSON valide: {"message":"texte court", "action":null} ou {"message":"texte court", "action":{"type":"...", ...}}. Tu peux proposer UNE action: add_filament {type,name,material,colorHex,spoolWeight,spoolPrice,stockSpools}; add_product {type,name,filamentId,weightG,printHours,printMin,priceOverride,stock}; set_price {type,id,priceOverride}; set_filament_price {type,id,spoolPrice}; set_electricity {type,elecPricePerKwh}. Utilise les IDs exacts de l'état. Pour add_filament demande nom, poids bobine et prix si manquants; matière PLA, couleur #94a3b8 et stock 1 seulement si non précisés, indique ces hypothèses. Pour add_product demande nom, ID filament, poids et temps si manquants; prix facultatif, pas d'invention. Pour prix demande objet et prix et refuse ambiguïté. Pas de suppression. Si manque information ou ambiguïté pose une question, action null. Aucune action si demande uniquement une information. Ne prétends jamais avoir effectué une action, elle sera proposée pour confirmation. Les valeurs numériques sont des nombres. État réel actuel : ${JSON.stringify(aiState())}`;
- try {let messages=[{role:'system',content:system},...aiMessages.slice(-10).map(m=>({role:m.role==='user'?'user':'assistant',content:m.text}))];let res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages})});let data=await res.json();if(!res.ok)throw Error(data.error||'Erreur de connexion');let out=JSON.parse(data.content);aiMessages.push({role:'assistant',text:String(out.message||'Voici ma proposition.')});if(out.action) aiPending=validateAI(out.action);}
+ try {let messages=[{role:'system',content:system},...aiMessages.slice(-10).map(m=>({role:m.role==='user'?'user':'assistant',content:m.text}))];let res=await aiFetch(messages);let data=await res.json();if(!res.ok)throw Error(data.error||'Erreur de connexion');let out=JSON.parse(data.content);aiMessages.push({role:'assistant',text:String(out.message||'Voici ma proposition.')});if(out.action) aiPending=validateAI(out.action);}
  catch(err){aiMessages.push({role:'assistant',text:'Impossible de répondre : '+err.message+'. Vérifie que le serveur est lancé et que la clé Groq est configurée.'});}finally{aiBusy=false;let button=document.getElementById('ai-send');if(button)button.disabled=false;paintAI()}}
 function validateAI(a){
  const number=(v,min=0)=>typeof v==='number'&&Number.isFinite(v)&&v>=min;

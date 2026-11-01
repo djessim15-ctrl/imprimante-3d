@@ -31,24 +31,15 @@ function readBody(req) {
 }
 
 export default async function handler(req, res) {
+  /* CORS : la page peut être servie depuis l'aperçu local et appeler l'API déployée. */
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  if (req.method === 'OPTIONS') return res.status(204).end();
+
   /* Test de santé : ne révèle jamais la clé, seulement sa présence. */
   if (req.method === 'GET') {
-    const probe = new URL(req.url, 'https://x').searchParams.get('probe');
-    if (probe === 'arena-check') {
-      const k = process.env.GROQ_API_KEY || '';
-      try {
-        const r = await fetch('https://api.groq.com/openai/v1/models', {
-          headers: { Authorization: `Bearer ${k}` },
-        });
-        return res.status(200).json({
-          key_length: k.length,
-          key_prefix_ok: k.startsWith('gsk_'),
-          groq_status: r.status,
-        });
-      } catch (e) {
-        return res.status(200).json({ key_length: k.length, groq_error: String(e).slice(0, 120) });
-      }
-    }
     return res.status(200).json({
       ok: true,
       configured: Boolean(process.env.GROQ_API_KEY),
