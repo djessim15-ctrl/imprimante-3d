@@ -336,9 +336,14 @@ function filamentPricePerGram(f) {
 function getFilament(id) { return S.filaments.find(f => f.id === id) || null; }
 
 // Poids restant sur la bobine (pour 1 bobine)
+/* Reste disponible = bobines neuves + la bobine entamée.
+   Une bobine entamée ne doit jamais être comptée en double : si le stock de
+   bobines neuves est à 0, la bobine ouverte fait partie du « remaining ». */
 function spoolLeftG(f) {
-  const total = f.spoolWeight * (f.stockSpools || 0) + (f.remaining || 0);
-  return total;
+  if (!f) return 0;
+  const neuves = Math.max(0, Number(f.stockSpools) || 0);
+  const ouvertes = Math.min(Math.max(0, Number(f.remaining) || 0), Number(f.spoolWeight) || Infinity);
+  return neuves * (Number(f.spoolWeight) || 0) + ouvertes;
 }
 
 /* ---------------- MOTEUR DE CALCUL ----------------
@@ -717,67 +722,117 @@ function viewDash() {
   </div>`;
 }
 
+/* ---------- Saisie sans perte de focus ----------
+   Un re-render complet du DOM à chaque frappe fait perdre le curseur.
+   Ces helpers mettent à jour l'état, puis seulement les zones calculées. */
+function simSet(key, value) {
+  if (key === 'qty') simState.qty = Math.max(1, +value || 1);
+  else if (key === 'mult') simState.mult = Math.max(1, +value || 1);
+  else if (key === 'filamentId') simState.filamentId = value || null;
+  else simState[key] = +value || 0;
+  viewCalc();
+}
+
+function _filterHandler(varName, applyFn) {
+  return function () {
+    window[varName].q = this.value;
+    if (typeof window[applyFn] === 'function') window[applyFn]();
+  };
+}
+
+/* Recherche du catalogue : on remplit seulement le tableau, la barre de
+   recherche n'est pas touchée. */
+function applyProdFilter() {
+  const host = document.getElementById('prodTable');
+  if (!host) return viewProd();
+  const list = prodListFiltered();
+  host.innerHTML = prodRowsHTML(list);
+  const kpis = document.getElementById('prodKpis');
+  if (kpis) kpis.innerHTML = prodKpisHTML(list);
+}
+
+function applySalesFilter() {
+  const host = document.getElementById('salesTable');
+  if (!host) return viewSales();
+  host.innerHTML = salesRowsHTML();
+}
+
 /* ---------------- Simulateur (calcul rapide) ---------------- */
 let simState = { weight: 50, hours: 4, min: 0, filamentId: null, qty: 1, mult: 2.5, postMin: 10 };
 
 function viewCalc() {
   const st = S.settings;
-  const fil = getFilament(simState.filamentId || (S.filaments[0] && S.filaments[0].id));
+  const curFil = simState.filamentId || (S.filaments[0] && S.filaments[0].id);
+
+  /* La page n'est construite qu'une fois ; ensuite on ne repeint que le
+     résultat (sinon le champ en cours de frappe perdrait le focus). */
+  if (!document.getElementById('simResult')) {
+    document.getElementById('view').innerHTML = `
+    <div class="topbar"><div>
+      <h2 class="page">Simulateur de prix</h2>
+      <p class="sub">Teste les paramètres d'un objet et vois immédiatement ton prix de revient et ta marge.</p>
+    </div></div>
+
+    <div class="two">
+      <div class="panel">
+        <h3><span class="dot"></span> Paramètres de l'objet</h3>
+        ${S.filaments.length ? '' : `<div class="tip">Aucun filament enregistré — <a class="link" href="#" onclick="go('fil');return false">ajoute ton premier filament</a> pour un calcul exact.</div>`}
+        <div class="field"><label>Filament utilisé</label>
+          <select onchange="simSet('filamentId',this.value)">
+            <option value="">— aucun (coût matière 0) —</option>
+            ${S.filaments.map(f => `<option value="${f.id}" ${f.id === curFil ? 'selected' : ''}>${esc(f.name)} — ${money(filamentPricePerGram(f) * 1000)}/kg</option>`).join('')}
+          </select></div>
+        <div class="row2">
+          <div class="field"><label>Poids de l'objet (g)</label>
+            <input type="number" step="1" min="0" value="${simState.weight}" oninput="simSet('weight',this.value)">
+            <div class="hint">Poids réel sorti de la slicer (Cura / Orca)</div></div>
+          <div class="field"><label>Objets sur le plateau</label>
+            <input type="number" step="1" min="1" value="${simState.qty}" oninput="simSet('qty',this.value)"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Temps d'impression (h)</label>
+            <input type="number" step="0.25" min="0" value="${simState.hours}" oninput="simSet('hours',this.value)"></div>
+          <div class="field"><label>+ minutes</label>
+            <input type="number" step="5" min="0" value="${simState.min}" oninput="simSet('min',this.value)"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Préparation + finition (min)</label>
+            <input type="number" step="5" min="0" value="${simState.postMin}" oninput="simSet('postMin',this.value)">
+            <div class="hint">Ébavurage, ébarbage, retrait des supports, contrôle</div></div>
+          <div class="field"><label>Coefficient de marge (×)</label>
+            <input type="number" step="0.1" min="1" value="${simState.mult}" oninput="simSet('mult',this.value)">
+            <div class="hint">Prix = coût × coefficient, hors frais de vente</div></div>
+        </div>
+        <div class="hr"></div>
+        <div style="font-size:11.5px;color:var(--muted);line-height:1.7">
+          Électricité <b style="color:var(--txt)">${money(st.elecPricePerKwh * 100)}/kWh</b> ·
+          imprimante <b style="color:var(--txt)">${st.printerWatts} W</b> ·
+          ratés <b style="color:var(--txt)">${num(st.failRatePct, 0)} %</b> ·
+          main d'œuvre <b style="color:var(--txt)">${money(st.laborPerHour)}/h</b><br>
+          <a class="link" href="#" onclick="go('settings');return false">modifier ces réglages →</a>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3><span class="dot" style="background:#38bdf8"></span> Résultat</h3>
+        <div id="simResult"></div>
+      </div>
+    </div>`;
+  }
+  paintSim();
+}
+
+function paintSim() {
+  const host = document.getElementById('simResult');
+  if (!host) return;
+  const st = S.settings;
   const sim = computeProduct({
     weightG: simState.weight, printHours: simState.hours, printMin: simState.min,
     filamentId: simState.filamentId || (S.filaments[0] && S.filaments[0].id),
     qtyPerPlate: simState.qty, multiplier: simState.mult, postMin: simState.postMin
   });
   const c = sim.costs;
-
-  document.getElementById('view').innerHTML = `
-  <div class="topbar"><div>
-    <h2 class="page">Simulateur de prix</h2>
-    <p class="sub">Teste les paramètres d'un objet et vois immédiatement ton prix de revient et ta marge.</p>
-  </div></div>
-
-  <div class="two">
-    <div class="panel">
-      <h3><span class="dot"></span> Paramètres de l'objet</h3>
-      ${S.filaments.length ? '' : `<div class="tip">Aucun filament enregistré — <a class="link" href="#" onclick="go('fil');return false">ajoute ton premier filament</a> pour un calcul exact.</div>`}
-      <div class="field"><label>Filament utilisé</label>
-        <select oninput="simState.filamentId=this.value;viewCalc()">
-          <option value="">— aucun (coût matière 0) —</option>
-          ${S.filaments.map(f => `<option value="${f.id}" ${f.id === (simState.filamentId || (S.filaments[0] && S.filaments[0].id)) ? 'selected' : ''}>${esc(f.name)} — ${money(filamentPricePerGram(f) * 1000)}/kg</option>`).join('')}
-        </select></div>
-      <div class="row2">
-        <div class="field"><label>Poids de l'objet (g)</label>
-          <input type="number" step="1" min="0" value="${simState.weight}" oninput="simState.weight=+this.value||0;viewCalc()">
-          <div class="hint">Poids réel sorti de la slicer (Cura / Orca)</div></div>
-        <div class="field"><label>Objets sur le plateau</label>
-          <input type="number" step="1" min="1" value="${simState.qty}" oninput="simState.qty=Math.max(1,+this.value||1);viewCalc()"></div>
-      </div>
-      <div class="row2">
-        <div class="field"><label>Temps d'impression (h)</label>
-          <input type="number" step="0.25" min="0" value="${simState.hours}" oninput="simState.hours=+this.value||0;viewCalc()"></div>
-        <div class="field"><label>+ minutes</label>
-          <input type="number" step="5" min="0" value="${simState.min}" oninput="simState.min=+this.value||0;viewCalc()"></div>
-      </div>
-      <div class="row2">
-        <div class="field"><label>Préparation + finition (min)</label>
-          <input type="number" step="5" min="0" value="${simState.postMin}" oninput="simState.postMin=+this.value||0;viewCalc()">
-          <div class="hint">Ébavurage, ébarbage, retrait des supports, contrôle</div></div>
-        <div class="field"><label>Coefficient de marge (×)</label>
-          <input type="number" step="0.1" min="1" value="${simState.mult}" oninput="simState.mult=+this.value||1;viewCalc()">
-          <div class="hint">Prix = coût × coefficient, hors frais de vente</div></div>
-      </div>
-      <div class="hr"></div>
-      <div style="font-size:11.5px;color:var(--muted);line-height:1.7">
-        Électricité <b style="color:var(--txt)">${money(st.elecPricePerKwh * 100)}/kWh</b> ·
-        imprimante <b style="color:var(--txt)">${st.printerWatts} W</b> ·
-        ratés <b style="color:var(--txt)">${num(st.failRatePct, 0)} %</b> ·
-        main d'œuvre <b style="color:var(--txt)">${money(st.laborPerHour)}/h</b><br>
-        <a class="link" href="#" onclick="go('settings');return false">modifier ces réglages →</a>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h3><span class="dot" style="background:#38bdf8"></span> Résultat</h3>
+  host.innerHTML = `
       <div class="calcbox">
         <div class="line"><span>Matière (${num(sim.weight, 1)} g × ${money(sim.pricePerGram, 3)}/g)</span><b>${money(c.filament)}</b></div>
         <div class="line"><span>Perte ratés (${num(st.failRatePct, 0)} %)</span><b>${money(c.failWaste)}</b></div>
@@ -810,9 +865,7 @@ function viewCalc() {
         Prix au gramme : <b style="color:var(--txt)">${money(sim.perGramPrice)}/g</b>
       </div>
       <button class="btn primary" style="width:100%;justify-content:center;margin-top:14px"
-        onclick="simToProduct()">＋ Créer cet objet dans mon catalogue</button>
-    </div>
-  </div>`;
+        onclick="simToProduct()">＋ Créer cet objet dans mon catalogue</button>`;
 }
 
 function simToProduct() {
@@ -857,8 +910,11 @@ function viewFil() {
   ${S.filaments.length ? `<div class="tw"><table>
     <thead><tr><th>Filament</th><th>Matière</th><th class="num">Bobine</th><th class="num">Prix bobine</th><th class="num">€ / kg</th><th class="num">€ / g</th><th class="num">Restant</th><th style="width:120px">Niveau</th><th></th></tr></thead>
     <tbody>${S.filaments.map(f => {
-      const left = spoolLeftG(f), total = (f.stockSpools || 0) * f.spoolWeight + (f.remaining || 0);
-      const pctLeft = Math.min(100, (left / Math.max(1, (f.stockSpools || 0 ? f.stockSpools * f.spoolWeight : f.spoolWeight))) * 100);
+      const left = spoolLeftG(f);
+      const capacity = Math.max(1, (f.stockSpools || 0) > 0
+        ? f.stockSpools * f.spoolWeight + Math.min(f.remaining || 0, f.spoolWeight)
+        : Math.min(f.remaining || 0, f.spoolWeight));
+      const pctLeft = Math.min(100, (left / capacity) * 100);
       const lvl = left < 150 ? 'bad' : left < 400 ? 'warn' : 'ok';
       return `<tr>
         <td><span class="swatch" style="background:${readableColor(f.colorHex)}"></span><b>${esc(f.name)}</b>
@@ -884,7 +940,7 @@ function viewFil() {
 function editFil(id) {
   const f = id ? S.filaments.find(x => x.id === id) : {
     id: uid(), name: '', material: 'PLA', brand: '', colorHex: '#3b82f6',
-    spoolWeight: 1000, spoolPrice: 19.9, remaining: 1000, stockSpools: 1, note: ''
+    spoolWeight: 1000, spoolPrice: 19.9, remaining: 0, stockSpools: 1, note: ''
   };
   openModal(`
     <header><h3>${id ? 'Modifier' : 'Ajouter'} un filament</h3><button class="x" onclick="closeModal()">✕</button></header>
@@ -899,11 +955,11 @@ function editFil(id) {
         <div class="field"><label>Marque</label><input id="f_brand" value="${esc(f.brand || '')}" placeholder="ex : Sunlu, eSun…"></div>
         <div class="field"><label>Couleur</label>
           <div class="split" style="gap:8px">
-            <input type="color" id="f_color" value="${f.colorHex}" style="width:62px;flex-shrink:0">
-            <input id="f_colorhex" value="${f.colorHex}" style="flex:1;font-family:monospace;font-size:12px">
+            <input type="color" id="f_color" value="${f.colorHex}" aria-label="Couleur du filament" style="width:62px;flex-shrink:0">
+            <input id="f_colorhex" value="${f.colorHex}" maxlength="7" aria-label="Code couleur hexadécimal" style="flex:1;font-family:monospace;font-size:12px">
           </div>
           <div class="chips" style="margin:7px 0 0">
-            ${PRESET_COLORS.map(c => `<span class="chip" style="width:22px;height:22px;padding:0;background:${c};border-color:#2b3a4d" onclick="document.getElementById('f_color').value='${c}';document.getElementById('f_colorhex').value='${c}'"></span>`).join('')}
+            ${PRESET_COLORS.map(c => `<span class="chip" role="button" title="${c}" aria-label="Couleur ${c}" style="width:22px;height:22px;padding:0;background:${c};border-color:#2b3a4d;cursor:pointer" onclick="setFilColor('${c}')"></span>`).join('')}
           </div></div>
       </div>
       <div class="row2">
@@ -930,25 +986,41 @@ function editFil(id) {
   const upd = () => {
     const sw = +document.getElementById('f_sw').value || 1;
     const sp = +document.getElementById('f_sp').value || 0;
-    document.getElementById('f_colorhex').value = document.getElementById('f_color').value;
+    const hex = document.getElementById('f_colorhex');
+    /* le sélecteur natif pilote le texte, le texte pilote le sélecteur */
+    const picker = document.getElementById('f_color');
+    if (/^#[0-9a-f]{6}$/i.test(hex.value) && hex.value.toLowerCase() !== picker.value.toLowerCase()) {
+      picker.value = hex.value.toLowerCase();
+    }
     const pg = sp / sw;
     document.getElementById('filPreview').innerHTML = `
       <div class="line"><span>Prix au gramme</span><b>${money(pg, 3)}/g</b></div>
       <div class="line"><span>Prix au kilo</span><b>${money(pg * 1000)}/kg</b></div>
       <div class="line total"><span>Coût matière d'un objet de 50 g</span><b>${money(pg * 50)}</b></div>`;
   };
-  ['f_sw', 'f_sp'].forEach(i => document.getElementById(i).addEventListener('input', upd));
-  document.getElementById('f_color').addEventListener('input', upd);
+  ['f_sw', 'f_sp', 'f_colorhex'].forEach(i => document.getElementById(i).addEventListener('input', upd));
+  document.getElementById('f_color').addEventListener('input', () => {
+    document.getElementById('f_colorhex').value = document.getElementById('f_color').value;
+    upd();
+  });
   upd();
+}
+
+function setFilColor(hex) {
+  document.getElementById('f_color').value = hex;
+  document.getElementById('f_colorhex').value = hex;
+  document.getElementById('f_color').dispatchEvent(new Event('input'));
 }
 
 function saveFil(id) {
   const g = i => document.getElementById(i).value;
   const name = g('f_name').trim();
   if (!name) return toast('⚠️ Donne un nom au filament');
+  const hexRaw = (g('f_colorhex') || g('f_color') || '').trim();
+  const colorHex = /^#[0-9a-f]{6}$/i.test(hexRaw) ? hexRaw.toLowerCase() : g('f_color');
   const data = {
     name, material: g('f_mat'), brand: g('f_brand').trim(),
-    colorHex: g('f_color'), spoolWeight: +g('f_sw') || 1000, spoolPrice: +g('f_sp') || 0,
+    colorHex, spoolWeight: +g('f_sw') || 1000, spoolPrice: +g('f_sp') || 0,
     stockSpools: +g('f_stock') || 0, remaining: +g('f_rem') || 0, note: g('f_note')
   };
   if (id) Object.assign(S.filaments.find(f => f.id === id), data);
@@ -973,12 +1045,7 @@ function delFil(id) {
 /* ---------------- OBJETS & PRIX ---------------- */
 let prodFilter = { q: '', sort: 'name' };
 
-function viewProd() {
-  let list = S.products.slice();
-  if (prodFilter.q) {
-    const q = prodFilter.q.toLowerCase();
-    list = list.filter(p => (p.name + ' ' + (p.sku || '') + ' ' + (p.description || '')).toLowerCase().includes(q));
-  }
+function prodRowsHTML(list) {
   const rows = list.map(p => ({ p, c: computeProduct(p) }));
   const sorters = {
     name: (a, b) => a.p.name.localeCompare(b.p.name),
@@ -988,37 +1055,16 @@ function viewProd() {
     time: (a, b) => b.c.totalHours - a.c.totalHours
   };
   rows.sort(sorters[prodFilter.sort] || sorters.name);
+  const count = document.getElementById('prodCount');
+  if (count) count.textContent = rows.length + ' objet' + (rows.length > 1 ? 's' : '');
 
-  const totalCost = rows.reduce((a, r) => a + r.c.costs.variable, 0);
-  const avgPrice = rows.length ? rows.reduce((a, r) => a + r.c.price, 0) / rows.length : 0;
-  const avgMargin = rows.length ? rows.reduce((a, r) => a + r.c.marginPct, 0) / rows.length : 0;
-  const totalHours = rows.reduce((a, r) => a + r.c.totalHours, 0);
-
-  document.getElementById('view').innerHTML = `
-  <div class="topbar"><div>
-    <h2 class="page">Objets & prix de vente</h2>
-    <p class="sub">Le prix se calcule tout seul à partir du poids, du temps et de ton coût machine.</p>
-  </div><div class="actions">
-    <button class="btn" onclick="go('calc')">∑ Simulateur</button>
-    <button class="btn primary" onclick="viewPropsNew()">＋ Nouvel objet</button>
-  </div></div>
-
-  <div class="grid kpis" style="margin-bottom:16px">
-    <div class="card kpi"><div class="lbl">Objets au catalogue</div><div class="val">${S.products.length}</div><div class="sub2">${rows.filter(r => r.p.active).length} en vente</div></div>
-    <div class="card kpi"><div class="lbl">Prix de revient moyen</div><div class="val warnc">${money(rows.length ? totalCost / rows.length : 0)}</div><div class="sub2">matière + énergie + usure</div></div>
-    <div class="card kpi"><div class="lbl">Prix moyen affiché</div><div class="val bluec">${money(avgPrice)}</div><div class="sub2">marge nette moy. ${pct(avgMargin)}</div></div>
-    <div class="card kpi"><div class="lbl">Temps total catalogue</div><div class="val">${num(totalHours, 1)} h</div><div class="sub2">si tu imprimes 1 de chaque</div></div>
-  </div>
-
-  <div class="toolbar">
-    <input type="search" placeholder="Rechercher un objet…" value="${esc(prodFilter.q)}" oninput="prodFilter.q=this.value;viewProd()">
-    <select oninput="prodFilter.sort=this.value;viewProd()">
-      ${[['name', 'Trier : nom'], ['price', 'Prix décroissant'], ['profit', 'Bénéfice'], ['margin', 'Marge %'], ['time', 'Temps']].map(([v, l]) => `<option value="${v}" ${prodFilter.sort === v ? 'selected' : ''}>${l}</option>`).join('')}
-    </select>
-    <span style="font-size:12px;color:var(--muted)">${rows.length} objet${rows.length > 1 ? 's' : ''}</span>
-  </div>
-
-  ${rows.length ? `<div class="tw"><table>
+  if (!rows.length) {
+    return `<div class="panel empty"><span class="big">▣</span>${S.products.length
+      ? 'Aucun objet ne correspond à cette recherche.'
+      : 'Ton catalogue est vide.'}<br>
+      <button class="btn primary" style="margin-top:14px" onclick="viewPropsNew()">＋ Créer un objet</button></div>`;
+  }
+  return `<div class="tw"><table>
     <thead><tr><th>Objet</th><th>Filament</th><th class="num">Poids</th><th class="num">Temps</th>
       <th class="num">Revient</th><th class="num">Prix</th><th class="num">Bénéfice</th><th class="num">Marge</th><th class="num">Stock</th><th></th></tr></thead>
     <tbody>${rows.map(({ p, c }) => `<tr>
@@ -1036,9 +1082,53 @@ function viewProd() {
         <button class="btn xs" onclick="editProduct('${p.id}')">✎</button>
         <button class="btn xs" onclick="sellProduct('${p.id}')">₱</button>
         <button class="btn xs danger" onclick="delProduct('${p.id}')">✕</button>
-      </td></tr>`).join('')}</tbody></table></div>`
-    : `<div class="panel empty"><span class="big">▣</span>Ton catalogue est vide.<br>
-       <button class="btn primary" style="margin-top:14px" onclick="viewPropsNew()">＋ Créer un objet</button></div>`}`;
+      </td></tr>`).join('')}</tbody></table></div>`;
+}
+
+function prodKpisHTML(list) {
+  const rows = list.map(p => ({ p, c: computeProduct(p) }));
+  const totalCost = rows.reduce((a, r) => a + r.c.costs.variable, 0);
+  const avgPrice = rows.length ? rows.reduce((a, r) => a + r.c.price, 0) / rows.length : 0;
+  const avgMargin = rows.length ? rows.reduce((a, r) => a + r.c.marginPct, 0) / rows.length : 0;
+  const totalHours = rows.reduce((a, r) => a + r.c.totalHours, 0);
+  return `
+    <div class="card kpi"><div class="lbl">Objets au catalogue</div><div class="val">${S.products.length}</div><div class="sub2">${S.products.filter(p => p.active).length} en vente</div></div>
+    <div class="card kpi"><div class="lbl">Prix de revient moyen</div><div class="val warnc">${money(rows.length ? totalCost / rows.length : 0)}</div><div class="sub2">matière + énergie + usure</div></div>
+    <div class="card kpi"><div class="lbl">Prix moyen affiché</div><div class="val bluec">${money(avgPrice)}</div><div class="sub2">marge nette moy. ${pct(avgMargin)}</div></div>
+    <div class="card kpi"><div class="lbl">Temps total catalogue</div><div class="val">${num(totalHours, 1)} h</div><div class="sub2">si tu imprimes 1 de chaque</div></div>`;
+}
+
+function prodListFiltered() {
+  let list = S.products.slice();
+  if (prodFilter.q) {
+    const q = prodFilter.q.toLowerCase();
+    list = list.filter(p => (p.name + ' ' + (p.sku || '') + ' ' + (p.description || '')).toLowerCase().includes(q));
+  }
+  return list;
+}
+
+function viewProd() {
+  document.getElementById('view').innerHTML = `
+  <div class="topbar"><div>
+    <h2 class="page">Objets & prix de vente</h2>
+    <p class="sub">Le prix se calcule tout seul à partir du poids, du temps et de ton coût machine.</p>
+  </div><div class="actions">
+    <button class="btn" onclick="go('calc')">∑ Simulateur</button>
+    <button class="btn primary" onclick="viewPropsNew()">＋ Nouvel objet</button>
+  </div></div>
+
+  <div class="grid kpis" style="margin-bottom:16px" id="prodKpis">${prodKpisHTML(prodListFiltered())}</div>
+
+  <div class="toolbar">
+    <input id="prodSearch" type="search" placeholder="Rechercher un objet…" value="${esc(prodFilter.q)}" oninput="prodFilter.q=this.value;applyProdFilter()">
+    <select onchange="prodFilter.sort=this.value;viewProd();document.getElementById('prodSearch').focus()">
+      ${[['name', 'Trier : nom'], ['price', 'Prix décroissant'], ['profit', 'Bénéfice'], ['margin', 'Marge %'], ['time', 'Temps']].map(([v, l]) => `<option value="${v}" ${prodFilter.sort === v ? 'selected' : ''}>${l}</option>`).join('')}
+    </select>
+    <span style="font-size:12px;color:var(--muted)" id="prodCount"></span>
+  </div>
+
+  <div id="prodTable">${prodRowsHTML(prodListFiltered())}</div>`;
+  /* le compteur est rempli par prodRowsHTML */
 }
 
 function viewPropsNew() {
@@ -1052,6 +1142,7 @@ function viewPropsNew() {
 function editProduct(id) {
   const p = S.products.find(x => x.id === id);
   if (!p) return;
+  overlayProdId = id;
   const isNew = !p.name;
   const c = computeProduct(p);
 
@@ -1060,7 +1151,7 @@ function editProduct(id) {
     <div class="body">
       <div class="row2">
         <div class="field"><label>Nom de l'objet *</label>
-          <input id="p_name" value="${esc(p.name)}" placeholder="ex : Support de téléphone hexagone"></div>
+          <input id="p_name" value="${esc(p.name)}" placeholder="ex : Support de téléphone hexagone" oninput="syncOverlayProductName()"></div>
         <div class="field"><label>Référence</label><input id="p_sku" value="${esc(p.sku || '')}"></div>
       </div>
       <div class="field"><label>Description (affichée en boutique)</label>
@@ -1143,6 +1234,16 @@ function readProductForm() {
   };
   return p;
 }
+/* Le nom saisi est reporté sur la fiche en mémoire, pour que le titre de la
+   fiche et le catalogue restent cohérents sans re-calculer les prix. */
+function syncOverlayProductName() {
+  const el = document.getElementById('p_name');
+  const p = S.products.find(x => x.id === overlayProdId);
+  if (el && p) p.name = el.value;
+}
+
+let overlayProdId = null;
+
 function prodLive(id) {
   const p = readProductForm();
   document.getElementById('prodPreview').innerHTML = prodPreviewHTML(computeProduct(p));
@@ -1286,15 +1387,48 @@ function checkout() {
 /* ---------------- VENTES ---------------- */
 let salesFilter = { q: '', chan: '', status: '' };
 
-function viewSales() {
+function salesListFiltered() {
   let list = S.sales.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   if (salesFilter.q) {
     const q = salesFilter.q.toLowerCase();
-    list = list.filter(s => (s.productName + ' ' + (s.customer || '') + ' ' + (s.note || '')).toLowerCase().includes(q));
+    list = list.filter(s => ((s.productName || '') + ' ' + (s.customer || '') + ' ' + (s.note || '')).toLowerCase().includes(q));
   }
   if (salesFilter.chan) list = list.filter(s => (s.channel || 'Direct') === salesFilter.chan);
   if (salesFilter.status) list = list.filter(s => s.status === salesFilter.status);
+  return list;
+}
 
+function salesRowsHTML() {
+  const list = salesListFiltered();
+  const count = document.getElementById('salesCount');
+  if (count) count.textContent = list.length + ' ligne' + (list.length > 1 ? 's' : '');
+  if (!list.length) {
+    return `<div class="panel empty"><span class="big">₱</span>Aucune vente ici.<br>
+      <button class="btn primary" style="margin-top:14px" onclick="viewSaleNew()">＋ Enregistrer une vente</button></div>`;
+  }
+  return `<div class="tw"><table>
+    <thead><tr><th>Date</th><th>Objet</th><th>Client</th><th>Canal</th><th class="num">Qté</th><th class="num">P.U.</th>
+      <th class="num">Total</th><th class="num">Coût</th><th class="num">Bénéfice</th><th class="num">Marge</th><th>Statut</th><th></th></tr></thead>
+    <tbody>${list.map(s => { const r = saleProfit(s); return `<tr>
+      <td style="white-space:nowrap">${frDate(s.date)}</td>
+      <td><b>${esc(s.productName)}</b></td>
+      <td>${esc(s.customer || '—')}</td>
+      <td><span class="pill">${esc(s.channel || 'Direct')}</span></td>
+      <td class="num">${s.qty}</td>
+      <td class="num">${money(s.unitPrice)}</td>
+      <td class="num"><b>${money(r.gross)}</b></td>
+      <td class="num" style="color:var(--muted)">${money(r.cost)}</td>
+      <td class="num ${r.profit >= 0 ? 'pos' : 'neg'}"><b>${money(r.profit)}</b></td>
+      <td class="num"><span class="pill ${r.margin >= 50 ? 'ok' : r.margin >= 20 ? 'warn' : 'bad'}">${pct(r.margin, 0)}</span></td>
+      <td><select style="padding:3px 6px;border-radius:6px;background:#0e1720;border:1px solid var(--line);font-size:11px"
+        onchange="setStatus('${s.id}',this.value)">
+        ${['À imprimer', 'En cours', 'Expédié', 'Livré', 'Annulé'].map(x => `<option ${s.status === x ? 'selected' : ''}>${x}</option>`).join('')}
+      </select></td>
+      <td style="white-space:nowrap"><button class="btn xs danger" onclick="delSale('${s.id}')">✕</button></td>
+    </tr>`; }).join('')}</tbody></table></div>`;
+}
+
+function viewSales() {
   const all = S.sales.map(saleProfit);
   const totRev = all.reduce((a, r) => a + r.gross, 0);
   const totProf = all.reduce((a, r) => a + r.profit, 0);
@@ -1318,40 +1452,19 @@ function viewSales() {
   </div>
 
   <div class="toolbar">
-    <input type="search" placeholder="Rechercher (objet, client…)" value="${esc(salesFilter.q)}" oninput="salesFilter.q=this.value;viewSales()">
-    <select oninput="salesFilter.chan=this.value;viewSales()">
+    <input id="salesSearch" type="search" placeholder="Rechercher (objet, client…)" value="${esc(salesFilter.q)}" oninput="salesFilter.q=this.value;applySalesFilter()">
+    <select onchange="salesFilter.chan=this.value;applySalesFilter()">
       <option value="">Tous les canaux</option>
       ${[...new Set(S.sales.map(s => s.channel || 'Direct'))].map(c => `<option ${salesFilter.chan === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
     </select>
-    <select oninput="salesFilter.status=this.value;viewSales()">
+    <select onchange="salesFilter.status=this.value;applySalesFilter()">
       <option value="">Tous les statuts</option>
-      ${['À imprimer', 'En cours', 'Expédié', 'Livré', 'Annulé'].map(s => `<option ${salesFilter.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+      ${['À imprimer', 'En cours', 'Expédié', 'Livré', 'Annulé'].map(x => `<option ${salesFilter.status === x ? 'selected' : ''}>${x}</option>`).join('')}
     </select>
-    <span style="font-size:12px;color:var(--muted)">${list.length} ligne${list.length > 1 ? 's' : ''}</span>
+    <span style="font-size:12px;color:var(--muted)" id="salesCount"></span>
   </div>
 
-  ${list.length ? `<div class="tw"><table>
-    <thead><tr><th>Date</th><th>Objet</th><th>Client</th><th>Canal</th><th class="num">Qté</th><th class="num">P.U.</th>
-      <th class="num">Total</th><th class="num">Coût</th><th class="num">Bénéfice</th><th class="num">Marge</th><th>Statut</th><th></th></tr></thead>
-    <tbody>${list.map(s => { const r = saleProfit(s); return `<tr>
-      <td style="white-space:nowrap">${frDate(s.date)}</td>
-      <td><b>${esc(s.productName)}</b></td>
-      <td>${esc(s.customer || '—')}</td>
-      <td><span class="pill">${esc(s.channel || 'Direct')}</span></td>
-      <td class="num">${s.qty}</td>
-      <td class="num">${money(s.unitPrice)}</td>
-      <td class="num"><b>${money(r.gross)}</b></td>
-      <td class="num" style="color:var(--muted)">${money(r.cost)}</td>
-      <td class="num ${r.profit >= 0 ? 'pos' : 'neg'}"><b>${money(r.profit)}</b></td>
-      <td class="num"><span class="pill ${r.margin >= 50 ? 'ok' : r.margin >= 20 ? 'warn' : 'bad'}">${pct(r.margin, 0)}</span></td>
-      <td><select style="padding:3px 6px;border-radius:6px;background:#0e1720;border:1px solid var(--line);font-size:11px"
-        onchange="setStatus('${s.id}',this.value)">
-        ${['À imprimer', 'En cours', 'Expédié', 'Livré', 'Annulé'].map(x => `<option ${s.status === x ? 'selected' : ''}>${x}</option>`).join('')}
-      </select></td>
-      <td style="white-space:nowrap"><button class="btn xs danger" onclick="delSale('${s.id}')">✕</button></td>
-    </tr>`; }).join('')}</tbody></table></div>`
-    : `<div class="panel empty"><span class="big">₱</span>Aucune vente ici.<br>
-       <button class="btn primary" style="margin-top:14px" onclick="viewSaleNew()">＋ Enregistrer une vente</button></div>`}`;
+  <div id="salesTable">${salesRowsHTML()}</div>`;
 }
 
 function setStatus(id, v) {
@@ -1808,64 +1921,473 @@ function seedDemo() {
   }
 }
 
-/* Assistant : les changements sont toujours proposés puis confirmés. */
+/* ===========================================================================
+   ASSISTANT AGENT
+   L'IA renvoie une LISTE d'actions ; l'utilisateur voit le détail, puis
+   confirme. Tout passe par les mêmes garde-fous que l'interface manuelle.
+   =========================================================================== */
 let aiMessages = [], aiPending = null, aiBusy = false;
-function viewAI(){
- document.getElementById('view').innerHTML = `<div class="ai-header"><span class="ai-kicker">✦ TON ASSISTANT D’ATELIER</span><h2>Moins de calculs.<br><em>Plus de créations.</em></h2><p>Dis-moi ce que tu veux faire, je prépare les changements et tu gardes le contrôle.</p></div>
- <div class="ai-layout"><section class="ai-panel"><div class="ai-title"><div><b>Assistant PrintProfit</b><small>Propulsé par Groq · GPT-OSS</small></div><span class="ai-dot">● EN LIGNE</span></div>
- <div id="ai-messages" class="ai-messages"></div><div id="ai-proposal"></div>
- <form class="ai-form" onsubmit="sendAI(event)"><textarea id="ai-input" placeholder="Ex. Ajoute une bobine de PLA blanc, 1 kg à 20 €…" rows="2" required></textarea><button class="btn primary" id="ai-send" ${aiBusy?'disabled':''}>Envoyer ↑</button></form>
- <div class="ai-note">Les données nécessaires de ton atelier sont envoyées à Groq. Vérifie les propositions avant de les appliquer.</div></section>
- <aside><div class="ai-side"><div class="ai-side-icon">✳</div><h3>Une idée ?<br>Parle-moi simplement.</h3><p>Je peux lire ton atelier et préparer tes modifications.</p><b>ESSAIE PAR EXEMPLE</b>
- <button onclick="aiExample(this)">Ajoute un PLA noir de 1 kg à 20 €</button><button onclick="aiExample(this)">Mets le prix de mon objet à 15 €</button><button onclick="aiExample(this)">Quels objets ont la meilleure marge ?</button></div><div class="ai-help"><b>À savoir</b><p>Les prix, poids et temps viennent de toi. Je ne les invente pas pour créer un article.</p></div></aside></div>`;
- paintAI();
+
+const AI_EXAMPLES = [
+  'Ajoute 10 bobines de PLA noir 1 kg à 20 €',
+  'Crée un porte-clés de 12 g en 25 min, prix 6 €',
+  'Mets tous mes prix à +15 %',
+  'Supprime les filaments que je n’utilise pas',
+  'Quels objets ont la meilleure marge ?',
+  'Passe le tarif électricité à 25 c/kWh'
+];
+
+function viewAI() {
+  document.getElementById('view').innerHTML = `
+  <div class="ai-header"><span class="ai-kicker">✦ TON ASSISTANT D’ATELIER</span>
+    <h2>Demande.<br><em>Je m’occupe du reste.</em></h2>
+    <p>Je peux tout gérer : filaments, objets, prix, réglages, ventes. Je prépare les changements, tu confirmes.</p></div>
+  <div class="ai-layout"><section class="ai-panel">
+    <div class="ai-title"><div><b>Assistant PrintProfit</b><small>Propulsé par Groq · GPT-OSS</small></div><span class="ai-dot">● EN LIGNE</span></div>
+    <div id="ai-messages" class="ai-messages"></div>
+    <div id="ai-proposal"></div>
+    <form class="ai-form" onsubmit="sendAI(event)">
+      <textarea id="ai-input" placeholder="Ex. Ajoute 10 bobines de PLA noir 1 kg à 20 €, et crée un porte-clés de 12 g…" rows="2" required></textarea>
+      <button class="btn primary" id="ai-send">Envoyer ↑</button>
+    </form>
+    <div class="ai-note">Les données de ton atelier sont envoyées à Groq pour comprendre la demande. Rien n’est appliqué sans ta confirmation.</div>
+  </section>
+  <aside>
+    <div class="ai-side"><div class="ai-side-icon">✳</div>
+      <h3>Tout est<br>modifiable.</h3>
+      <p>Filaments, objets, prix, réglages, ventes : demande-le en français.</p>
+      <b>ESSAIE PAR EXEMPLE</b>
+      ${AI_EXAMPLES.map(x => `<button onclick="aiExample(this)">${esc(x)}</button>`).join('')}
+    </div>
+    <div class="ai-help"><b>Comment ça marche</b>
+      <p>Tu décris ce que tu veux, en une ou plusieurs actions. Je propose une liste détaillée ; tu confirmes pour appliquer, ou tu annules. Les suppressions demandent une confirmation supplémentaire.</p>
+    </div>
+  </aside></div>`;
+  paintAI();
 }
-function paintAI(){let el=document.getElementById('ai-messages');if(!el)return;
- el.innerHTML = aiMessages.length ? aiMessages.map(m=>`<div class="bubble ${m.role==='user'?'mine':'theirs'}"><span>${m.role==='user'?'TOI':'✦ ASSISTANT'}</span><p>${esc(m.text)}</p></div>`).join('') : `<div class="ai-welcome"><div class="welcome-icon">✦</div><h3>Bonjour, qu’est-ce qu’on crée ?</h3><p>Ajoute des filaments, fixe tes prix ou pose-moi une question sur ton atelier.</p></div>`;
- if(aiBusy) el.innerHTML += '<div class="bubble theirs"><span>✦ ASSISTANT</span><p>Je réfléchis…</p></div>';
- el.scrollTop=el.scrollHeight;
- let box=document.getElementById('ai-proposal'); if(box) box.innerHTML=aiPending?`<div class="ai-confirm"><b>Modification proposée</b><pre>${esc(aiPending.label)}</pre><div><button class="btn primary" onclick="applyAI()">Confirmer et enregistrer</button> <button class="btn ghost" onclick="cancelAI()">Annuler</button></div></div>`:'';
+
+function paintAI() {
+  const el = document.getElementById('ai-messages');
+  if (!el) return;
+  el.innerHTML = aiMessages.length
+    ? aiMessages.map(m => `<div class="bubble ${m.role === 'user' ? 'mine' : 'theirs'}"><span>${m.role === 'user' ? 'TOI' : '✦ ASSISTANT'}</span><p>${esc(m.text)}</p></div>`).join('')
+    : `<div class="ai-welcome"><div class="welcome-icon">✦</div><h3>Bonjour, qu’est-ce qu’on fait ?</h3><p>Ajoute dix bobines, crée des objets, change des prix… dis-le simplement.</p></div>`;
+  if (aiBusy) el.innerHTML += '<div class="bubble theirs"><span>✦ ASSISTANT</span><p>Je réfléchis…</p></div>';
+  el.scrollTop = el.scrollHeight;
+
+  const box = document.getElementById('ai-proposal');
+  if (!box) return;
+  if (!aiPending) { box.innerHTML = ''; return; }
+  const A = aiPending.actions;
+  box.innerHTML = `<div class="ai-confirm">
+    <b>${A.length} modification${A.length > 1 ? 's' : ''} proposée${A.length > 1 ? 's' : ''}</b>
+    <ol style="margin:10px 0 14px;padding-left:20px;line-height:1.65;color:#e7f4d7;font-size:12.5px">
+      ${A.map(a => `<li>${esc(a.label)}</li>`).join('')}
+    </ol>
+    <div><button class="btn primary" onclick="applyAI()">Confirmer et enregistrer</button>
+    <button class="btn ghost" onclick="cancelAI()">Annuler</button></div>
+  </div>`;
 }
-function aiExample(b){document.getElementById('ai-input').value=b.textContent;document.getElementById('ai-input').focus()}
-function cancelAI(){aiPending=null;aiMessages.push({role:'assistant',text:'Modification annulée.'});paintAI()}
-function aiState(){return {filaments:S.filaments.map(f=>({id:f.id,nom:f.name,matiere:f.material,couleur:f.colorHex,poids_bobine_g:f.spoolWeight,prix_bobine_eur:f.spoolPrice,stock_bobines:f.stockSpools})),objets:S.products.map(p=>({id:p.id,nom:p.name,filament_id:p.filamentId,poids_g:p.weightG,heures:p.printHours,minutes:p.printMin,prix_manuel_eur:p.priceOverride,prix_calcule_eur:+computeProduct(p).price.toFixed(2),marge_pct:+computeProduct(p).marginPct.toFixed(1)})),reglages:{electricite_eur_kwh:S.settings.elecPricePerKwh,puissance_w:S.settings.printerWatts}}}
-/* Appel de l'assistant : on essaie le serveur courant, puis l'API déployée si
-   elle est injoignable (aperçu local sans accès réseau à Groq, par exemple). */
+
+function aiExample(b) {
+  const i = document.getElementById('ai-input');
+  i.value = b.textContent;
+  i.focus();
+}
+function cancelAI() {
+  aiPending = null;
+  aiMessages.push({ role: 'assistant', text: 'Modification annulée.' });
+  paintAI();
+}
+
+/* ---------------------------------------------------------------- contexte */
+function aiState() {
+  /* on borne le contexte : au-delà, la requête dépasserait la taille max */
+  const MAXF = 80, MAXP = 80;
+  const fils = S.filaments.slice(0, MAXF).map(f => ({
+    id: f.id, nom: f.name, matiere: f.material, couleur: f.colorHex,
+    poids_bobine_g: f.spoolWeight, prix_bobine_eur: f.spoolPrice,
+    bobines_neuves: f.stockSpools || 0, restant_bobine_ouverte_g: f.remaining || 0
+  }));
+  const prods = S.products.slice(0, MAXP).map(p => {
+    const c = computeProduct(p);
+    return {
+      id: p.id, nom: p.name, filament_id: p.filamentId, poids_g: p.weightG,
+      heures: p.printHours, minutes: p.printMin, objets_par_plateau: p.qtyPerPlate,
+      finition_min: p.postMin, emballage_eur: p.packaging, coefficient: p.multiplier,
+      prix_manuel_eur: p.priceOverride, prix_calcule_eur: +c.price.toFixed(2),
+      prix_revient_eur: +c.costs.variable.toFixed(2), marge_pct: +c.marginPct.toFixed(1),
+      stock: p.stock, visible: p.active, sku: p.sku, description: p.description
+    };
+  });
+  return {
+    total_filaments: S.filaments.length, total_objets: S.products.length,
+    filaments: fils, objets: prods,
+    reglages: {
+      nom_atelier: S.settings.shopName, electricite_eur_kwh: S.settings.elecPricePerKwh,
+      puissance_w: S.settings.printerWatts, main_oeuvre_eur_h: S.settings.laborPerHour,
+      finition_min: S.settings.postProcessMin, taux_rate_pct: S.settings.failRatePct,
+      emballage_eur: S.settings.packagingCost, livraison_eur: S.settings.shippingCost,
+      commission_pct: S.settings.platformFeePct, frais_paiement_pct: S.settings.paymentFeePct,
+      marge_cible_pct: S.settings.targetMarginPct, tva_pct: S.settings.vatPct,
+      prix_ttc: S.settings.vatEnabled
+    },
+    nb_ventes: S.sales.length
+  };
+}
+
+/* ------------------------------------------------------------ validation */
+const AI_FIELDS = {
+  add_filament: { requis: ['name'], num: ['spoolWeight', 'spoolPrice', 'stockSpools', 'remaining'] },
+  add_filaments: { requete: true },
+  update_filament: { requete: ['id'] },
+  delete_filament: { requete: ['id'] },
+  add_product: { requise: ['name'], num: ['weightG', 'printHours', 'printMin', 'priceOverride', 'stock', 'qtyPerPlate', 'multiplier'] },
+  add_products: { requete: true },
+  update_product: { requete: ['id'] },
+  delete_product: { requete: ['id'] },
+  update_settings: { requete: [] },
+  delete_sales: { requete: ['id'] }
+};
+
+const nb = (v) => typeof v === 'number' && Number.isFinite(v) ? v : (typeof v === 'string' && v.trim() !== '' && Number.isFinite(+v) ? +v : null);
+const hexOk = (v) => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
+const matOk = (v) => typeof v === 'string' && v.trim() ? v.trim() : null;
+
+function findFil(id) { return S.filaments.find(f => f.id === id) || null; }
+function findProd(id) { return S.products.find(p => p.id === id) || null; }
+
+/* Normalise et vérifie une action. Lève une Error si inutilisable.
+   Renvoie { act, label } : une action propre + le texte montré à l'utilisateur. */
+function validateAI(a) {
+  if (!a || typeof a !== 'object' || typeof a.type !== 'string') throw Error('action non reconnue');
+
+  switch (a.type) {
+    /* ---------------------------------------------------------- filaments */
+    case 'add_filament': {
+      const name = (a.name || '').toString().trim();
+      const sw = nb(a.spoolWeight), sp = nb(a.spoolPrice);
+      if (!name) throw Error('filament sans nom');
+      if (sw === null || sw < 1) throw Error(`poids de bobine manquant pour « ${name} »`);
+      if (sp === null || sp < 0) throw Error(`prix manquant pour « ${name} »`);
+      const mat = matOk(a.material) || 'PLA';
+      const hex = hexOk(a.colorHex) ? a.colorHex.toLowerCase() : '#94a3b8';
+      const stock = nb(a.stockSpools) ?? 1;
+      const remaining = nb(a.remaining) ?? 0;
+      return {
+        act: { type: 'add_filament', name, material: mat, colorHex: hex, spoolWeight: sw, spoolPrice: sp, stockSpools: stock, remaining, brand: (a.brand || '').toString().slice(0, 60) },
+        label: `Ajouter « ${name} » — ${mat} ${hex}, bobine ${sw} g, ${sp} €, stock ${stock}`
+      };
+    }
+    case 'add_filaments': {
+      if (!Array.isArray(a.items) || !a.items.length) throw Error('aucun filament dans la liste');
+      const items = a.items.slice(0, 40).map(it => {
+        const v = validateAI({ ...it, type: 'add_filament' });
+        return v.act;
+      });
+      const resume = items.slice(0, 6).map(i => `${i.name} (${i.stockSpools}×${i.spoolWeight} g, ${i.spoolPrice} €)`).join(', ');
+      return { act: { type: 'add_filaments', items }, label: `Ajouter ${items.length} filaments : ${resume}${items.length > 6 ? '…' : ''}` };
+    }
+    case 'update_filament': {
+      const f = findFil(a.id);
+      if (!f) throw Error(`filament inconnu (id ${a.id})`);
+      const patch = {};
+      if (a.name != null && String(a.name).trim()) patch.name = String(a.name).trim();
+      if (a.material != null) patch.material = String(a.material);
+      if (a.colorHex != null) { if (!hexOk(a.colorHex)) throw Error('couleur invalide'); patch.colorHex = a.colorHex.toLowerCase(); }
+      if (a.brand != null) patch.brand = String(a.brand).slice(0, 60);
+      if (a.note != null) patch.note = String(a.note).slice(0, 200);
+      for (const k of ['spoolWeight', 'spoolPrice', 'stockSpools', 'remaining']) {
+        const v = nb(a[k]);
+        if (v !== null) { if (v < 0) throw Error(`valeur négative pour ${k}`); patch[k] = v; }
+      }
+      if (!Object.keys(patch).length) throw Error('aucune modification indiquée');
+      const before = Object.entries(patch).map(([k, v]) => `${k}: ${f[k]} → ${v}`).join(', ');
+      return { act: { type: 'update_filament', id: f.id, patch }, label: `Modifier « ${f.name} » — ${before}` };
+    }
+    case 'delete_filament': {
+      const f = findFil(a.id);
+      if (!f) throw Error(`filament inconnu (id ${a.id})`);
+      const used = S.products.filter(p => p.filamentId === f.id);
+      if (used.length) throw Error(`« ${f.name} » est utilisé par ${used.length} objet(s) : change-leur filament d’abord`);
+      return { act: { type: 'delete_filament', id: f.id }, label: `SUPPRIMER le filament « ${f.name} »` };
+    }
+
+    /* ------------------------------------------------------------- objets */
+    case 'add_product': {
+      const name = (a.name || '').toString().trim();
+      if (!name) throw Error('objet sans nom');
+      const w = nb(a.weightG);
+      const h = nb(a.printHours) ?? 0;
+      const m = nb(a.printMin) ?? 0;
+      if (w === null || w <= 0) throw Error(`poids manquant pour « ${name} »`);
+      if (h <= 0 && m <= 0) throw Error(`temps d’impression manquant pour « ${name} »`);
+      let filId = a.filamentId;
+      if (filId && !findFil(filId)) throw Error(`filament inconnu (id ${filId})`);
+      const price = nb(a.priceOverride);
+      return {
+        act: {
+          type: 'add_product', name, filamentId: filId || null, weightG: w,
+          printHours: h, printMin: m, qtyPerPlate: Math.max(1, nb(a.qtyPerPlate) ?? 1),
+          postMin: nb(a.postMin), packaging: nb(a.packaging),
+          multiplier: nb(a.multiplier) ?? 2.5,
+          priceOverride: price !== null && price > 0 ? price : null,
+          stock: nb(a.stock) ?? 0, description: (a.description || '').toString().slice(0, 400),
+          sku: (a.sku || '').toString().slice(0, 40),
+          emoji: ICONS[a.emoji] ? a.emoji : 'cube', active: a.active === false ? false : true
+        },
+        label: `Créer « ${name} » — ${w} g, ${h} h ${m} min${price ? ', prix ' + price + ' €' : ', prix automatique'}`
+      };
+    }
+    case 'add_products': {
+      if (!Array.isArray(a.items) || !a.items.length) throw Error('aucun objet dans la liste');
+      const items = a.items.slice(0, 40).map(it => validateAI({ ...it, type: 'add_product' }).act);
+      return {
+        act: { type: 'add_products', items },
+        label: `Créer ${items.length} objets : ${items.slice(0, 5).map(i => i.name).join(', ')}${items.length > 5 ? '…' : ''}`
+      };
+    }
+    case 'update_product': {
+      const p = findProd(a.id);
+      if (!p) throw Error(`objet inconnu (id ${a.id})`);
+      const patch = {};
+      if (a.name != null && String(a.name).trim()) patch.name = String(a.name).trim();
+      if (a.description != null) patch.description = String(a.description).slice(0, 400);
+      if (a.sku != null) patch.sku = String(a.sku).slice(0, 40);
+      if (a.filamentId !== undefined) {
+        if (a.filamentId && !findFil(a.filamentId)) throw Error('filament inconnu');
+        patch.filamentId = a.filamentId || null;
+      }
+      if (typeof a.active === 'boolean') patch.active = a.active;
+      if (ICONS[a.emoji]) patch.emoji = a.emoji;
+      for (const k of ['weightG', 'printHours', 'printMin', 'qtyPerPlate', 'multiplier', 'stock']) {
+        const v = nb(a[k]);
+        if (v !== null) { if (v < 0) throw Error(`valeur négative pour ${k}`); patch[k] = v; }
+      }
+      for (const k of ['postMin', 'packaging', 'priceOverride']) {
+        if (a[k] === null) patch[k] = null;
+        else { const v = nb(a[k]); if (v !== null) patch[k] = v; }
+      }
+      if (!Object.keys(patch).length) throw Error('aucune modification indiquée');
+      const before = Object.entries(patch).map(([k, v]) => `${k}: ${p[k] ?? '—'} → ${v ?? '—'}`).join(', ');
+      return { act: { type: 'update_product', id: p.id, patch }, label: `Modifier « ${p.name} » — ${before}` };
+    }
+    case 'delete_product': {
+      const p = findProd(a.id);
+      if (!p) throw Error(`objet inconnu (id ${a.id})`);
+      return { act: { type: 'delete_product', id: p.id }, label: `SUPPRIMER l’objet « ${p.name} »` };
+    }
+
+    /* ----------------------------------------------------------- réglages */
+    case 'update_settings': {
+      const allowed = {
+        shopName: 'str', shopTagline: 'str', shopContact: 'str', printerName: 'str', currency: 'str',
+        printerPrice: 'num', printerLifeHours: 'num', maintenancePerHour: 'num', printerWatts: 'num',
+        elecPricePerKwh: 'num', laborPerHour: 'num', postProcessMin: 'num', failRatePct: 'num',
+        packagingCost: 'num', shippingCost: 'num', platformFeePct: 'num', paymentFeePct: 'num',
+        paymentFeeFixed: 'num', targetMarginPct: 'num', vatPct: 'num'
+      };
+      const patch = {};
+      for (const [k, kind] of Object.entries(allowed)) {
+        if (a[k] === undefined || a[k] === null) continue;
+        if (kind === 'num') {
+          const v = nb(a[k]);
+          if (v === null || v < 0) throw Error(`valeur invalide pour ${k}`);
+          patch[k] = v;
+        } else patch[k] = String(a[k]).slice(0, 120);
+      }
+      if (typeof a.vatEnabled === 'boolean') patch.vatEnabled = a.vatEnabled;
+      if (!Object.keys(patch).length) throw Error('aucun réglage indiqué');
+      const before = Object.entries(patch).map(([k, v]) => `${k}: ${S.settings[k]} → ${v}`).join(', ');
+      return { act: { type: 'update_settings', patch }, label: `Modifier les réglages — ${before}` };
+    }
+
+    /* -------------------------------------------------------------- ventes */
+    case 'delete_sales': {
+      const ids = Array.isArray(a.ids) ? a.ids : (a.id ? [a.id] : []);
+      const found = ids.map(findSale).filter(Boolean);
+      if (!found.length) throw Error('vente introuvable');
+      return {
+        act: { type: 'delete_sales', ids: found.map(s => s.id) },
+        label: `SUPPRIMER ${found.length} vente(s) — ${found.slice(0, 4).map(s => `${s.productName} (${frDate(s.date)})`).join(', ')}`
+      };
+    }
+
+    default:
+      throw Error('action non prise en charge : ' + a.type);
+  }
+}
+
+function findSale(id) { return S.sales.find(s => s.id === id) || null; }
+
+/* ------------------------------------------------------------ exécution */
+function applyAIActions(actions) {
+  const done = [];
+  for (const a of actions) {
+    switch (a.type) {
+      case 'add_filament':
+        S.filaments.push({ id: uid(), brand: '', note: '', ...a });
+        done.push(a.name);
+        break;
+      case 'add_filaments':
+        a.items.forEach(i => { S.filaments.push({ id: uid(), brand: '', note: '', ...i }); done.push(i.name); });
+        break;
+      case 'update_filament':
+        Object.assign(findFil(a.id), a.patch); done.push('filament');
+        break;
+      case 'delete_filament':
+        S.filaments = S.filaments.filter(f => f.id !== a.id); done.push('filament supprimé');
+        break;
+      case 'add_product':
+      case 'add_products': {
+        const items = a.type === 'add_products' ? a.items : [a];
+        items.forEach(i => {
+          S.products.push({
+            id: uid(), ...i, qtyPerPlate: i.qtyPerPlate || 1,
+            postMin: i.postMin ?? null, packaging: i.packaging ?? null,
+            multiplier: i.multiplier || 2.5, priceOverride: i.priceOverride ?? null,
+            emoji: i.emoji || 'cube', active: i.active !== false
+          });
+          done.push(i.name);
+        });
+        break;
+      }
+      case 'update_product':
+        Object.assign(findProd(a.id), a.patch); done.push('objet modifié');
+        break;
+      case 'delete_product':
+        S.products = S.products.filter(p => p.id !== a.id); done.push('objet supprimé');
+        break;
+      case 'update_settings':
+        Object.assign(S.settings, a.patch); done.push('réglages');
+        break;
+      case 'delete_sales':
+        S.sales = S.sales.filter(s => !a.ids.includes(s.id)); done.push(a.ids.length + ' vente(s) supprimée(s)');
+        break;
+    }
+  }
+  return done;
+}
+
+function applyAI() {
+  if (!aiPending) return;
+  const destructive = aiPending.actions.filter(a => a.type.startsWith('delete_'));
+  if (destructive.length && !confirm(`Cette action supprime définitivement :\n\n${destructive.map(a => '• ' + a.label).join('\n')}\n\nContinuer ?`)) return;
+  let done;
+  try {
+    done = applyAIActions(aiPending.actions);
+  } catch (e) {
+    aiPending = null; paintAI(); return toast('⚠️ ' + e.message);
+  }
+  save();
+  aiPending = null;
+  aiMessages.push({ role: 'assistant', text: `C’est fait : ${done.length} changement(s) enregistré(s).` });
+  render();
+  toast('Modifications enregistrées ✓');
+  paintAI();
+}
+
 const AI_REMOTE = 'https://imprimante-3d.vercel.app/api/chat';
-async function aiFetch(messages){
+
+async function aiFetch(messages) {
   const body = JSON.stringify({ messages });
-  const opts = { method:'POST', headers:{ 'Content-Type':'application/json' }, body };
+  const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body };
   let first;
   try { first = await fetch('/api/chat', opts); }
-  catch(e) { return fetch(AI_REMOTE, opts); }
+  catch (e) { return fetch(AI_REMOTE, opts); }
   if (first.status !== 500 && first.status !== 404) return first;
   try {
     const second = await fetch(AI_REMOTE, opts);
     if (second.ok) return second;
-  } catch(e) {}
+  } catch (e) {}
   return first;
 }
-async function sendAI(e){e.preventDefault();if(aiBusy)return;if(aiPending){toast('Confirme ou annule d’abord la modification proposée.');return}let input=document.getElementById('ai-input'),text=input.value.trim();if(!text)return;input.value='';aiMessages.push({role:'user',text});aiBusy=true;document.getElementById('ai-send').disabled=true;paintAI();
- const system=`Tu es un assistant français de gestion d'atelier 3D. Réponds UNIQUEMENT en JSON valide: {"message":"texte court", "action":null} ou {"message":"texte court", "action":{"type":"...", ...}}. Tu peux proposer UNE action: add_filament {type,name,material,colorHex,spoolWeight,spoolPrice,stockSpools}; add_product {type,name,filamentId,weightG,printHours,printMin,priceOverride,stock}; set_price {type,id,priceOverride}; set_filament_price {type,id,spoolPrice}; set_electricity {type,elecPricePerKwh}. Utilise les IDs exacts de l'état. Pour add_filament demande nom, poids bobine et prix si manquants; matière PLA, couleur #94a3b8 et stock 1 seulement si non précisés, indique ces hypothèses. Pour add_product demande nom, ID filament, poids et temps si manquants; prix facultatif, pas d'invention. Pour prix demande objet et prix et refuse ambiguïté. Pas de suppression. Si manque information ou ambiguïté pose une question, action null. Aucune action si demande uniquement une information. Ne prétends jamais avoir effectué une action, elle sera proposée pour confirmation. Les valeurs numériques sont des nombres. État réel actuel : ${JSON.stringify(aiState())}`;
- try {let messages=[{role:'system',content:system},...aiMessages.slice(-10).map(m=>({role:m.role==='user'?'user':'assistant',content:m.text}))];let res=await aiFetch(messages);let data=await res.json();if(!res.ok)throw Error(data.error||'Erreur de connexion');let out=JSON.parse(data.content);aiMessages.push({role:'assistant',text:String(out.message||'Voici ma proposition.')});if(out.action) aiPending=validateAI(out.action);}
- catch(err){aiMessages.push({role:'assistant',text:'Impossible de répondre : '+err.message+'. Vérifie que le serveur est lancé et que la clé Groq est configurée.'});}finally{aiBusy=false;let button=document.getElementById('ai-send');if(button)button.disabled=false;paintAI()}}
-function validateAI(a){
- const number=(v,min=0)=>typeof v==='number'&&Number.isFinite(v)&&v>=min;
- let label='';
- if(a.type==='add_filament') {if(typeof a.name!=='string'||!a.name.trim()||!number(a.spoolWeight,1)||!number(a.spoolPrice))throw Error('proposition incomplète : nom, poids et prix requis');a.material=typeof a.material==='string'?a.material:'PLA';a.colorHex=/^#[0-9a-f]{6}$/i.test(a.colorHex)?a.colorHex:'#94a3b8';a.stockSpools=number(a.stockSpools)?a.stockSpools:1; label=`Ajouter le filament « ${a.name} »\n${a.material} · couleur ${a.colorHex}\nBobine ${a.spoolWeight} g · ${a.spoolPrice} € · stock ${a.stockSpools}`;}
- else if(a.type==='add_product'){let f=S.filaments.find(x=>x.id===a.filamentId);if(!f||typeof a.name!=='string'||!a.name.trim()||!number(a.weightG,0.01)||!number(a.printHours)||!number(a.printMin)||a.printMin>=60||(a.printHours===0&&a.printMin===0))throw Error('proposition incomplète : nom, filament, poids et temps requis');if(a.priceOverride!=null&&!number(a.priceOverride,0.01))throw Error('prix invalide');a.stock=number(a.stock)?a.stock:0;label=`Créer « ${a.name} »\nFilament : ${f.name} · ${a.weightG} g · ${a.printHours} h ${a.printMin} min\nPrix : ${a.priceOverride==null?'automatique':a.priceOverride+' €'} · stock ${a.stock}`;}
- else if(a.type==='set_price'){let p=S.products.find(x=>x.id===a.id);if(!p||!number(a.priceOverride,0.01))throw Error('objet ou prix invalide');label=`Modifier le prix de « ${p.name} »\nAncien : ${money(computeProduct(p).price)} → nouveau : ${a.priceOverride} €`;}
- else if(a.type==='set_filament_price'){let f=S.filaments.find(x=>x.id===a.id);if(!f||!number(a.spoolPrice))throw Error('filament ou prix invalide');label=`Modifier le prix de « ${f.name} »\nAncien : ${f.spoolPrice} € → nouveau : ${a.spoolPrice} € par bobine`;}
- else if(a.type==='set_electricity'){if(!number(a.elecPricePerKwh))throw Error('tarif invalide');label=`Modifier le tarif électrique\nAncien : ${S.settings.elecPricePerKwh} €/kWh → nouveau : ${a.elecPricePerKwh} €/kWh`;}
- else throw Error('action non prise en charge');return {action:a,label};
+
+function aiSystemPrompt() {
+  return `Tu es l'assistant agent d'un atelier d'impression 3D. Tu réponds TOUJOURS en JSON valide, sans texte autour.
+
+Format exact :
+{"message":"réponse courte en français","actions":[]}
+
+"actions" est une LISTE (0 à 20 éléments). Chaque élément a un "type" :
+
+1. {"type":"add_filament","name":str,"material":str,"colorHex":"#rrggbb","spoolWeight":nb,"spoolPrice":nb,"stockSpools":nb,"remaining":nb,"brand":str}
+2. {"type":"add_filaments","items":[ ...plusieurs add_filament... ]}  ← pour "ajoute 10 bobines" ou plusieurs couleurs
+3. {"type":"update_filament","id":str,"name":str?,"material":str?,"colorHex":str?,"spoolWeight":nb?,"spoolPrice":nb?,"stockSpools":nb?,"remaining":nb?,"brand":str?}
+4. {"type":"delete_filament","id":str}
+5. {"type":"add_product","name":str,"filamentId":str,"weightG":nb,"printHours":nb,"printMin":nb,"qtyPerPlate":nb,"postMin":nb,"packaging":nb,"multiplier":nb,"priceOverride":nb,"stock":nb,"description":str,"emoji":str}
+6. {"type":"add_products","items":[ ...plusieurs add_product... ]}
+7. {"type":"update_product","id":str, ...champs à changer...}
+8. {"type":"delete_product","id":str}
+9. {"type":"update_settings","elecPricePerKwh":nb?,"laborPerHour":nb?,"failRatePct":nb?,"printerWatts":nb?,"packagingCost":nb?,"shippingCost":nb?,"platformFeePct":nb?,"paymentFeePct":nb?,"paymentFeeFixed":nb?,"targetMarginPct":nb?,"vatPct":nb?,"vatEnabled":bool?,"shopName":str?,"printerName":str?}
+10. {"type":"delete_sales","ids":[str,...]}
+
+RÈGLES IMPORTANTES
+- Utilise EXACTEMENT les ids présents dans l'état fourni. N'invente jamais d'id.
+- Tu peux enchaîner plusieurs actions dans la même réponse (ex. créer 10 filaments + 3 objets).
+- Pour "ajoute 10 bobines de PLA noir", écris add_filaments avec 10 éléments, ou un seul élément avec "stockSpools":10 — préfère stockSpools pour ne pas dépasser 20 actions.
+- Couleurs : code hexadécimal réaliste (noir #111827, blanc #ffffff, rouge #ef4444, bleu #3b82f6, vert #22c55e, gris #9ca3af, or #fbbf24, transparent/naturel #e5e7eb).
+- Matières : PLA, PLA+, PETG, ABS, ASA, TPU, Nylon, PC, PVA.
+- Si une info indispensable manque (poids, temps, prix d'un objet), pose UNE question dans "message" et renvoie "actions":[].
+- N'invente pas le poids ou le temps d'impression d'un objet : demande-les.
+- Pour une question d'analyse (marges, stock), "actions":[] et réponds dans "message" avec des chiffres issus de l'état.
+- Ne dis jamais que c'est déjà fait : les actions seront proposées puis confirmées.
+- Les nombres sont des nombres JSON, pas des chaînes.
+- "emoji" : une clé parmi ${Object.keys(ICONS).filter(k => k !== 'cart').join(', ')} — sinon "cube".
+
+État réel de l'atelier :
+${JSON.stringify(aiState())}`;
 }
-function applyAI(){if(!aiPending)return;let a;try{a=validateAI(aiPending.action).action}catch(e){aiPending=null;paintAI();toast(e.message);return}
- if(a.type==='add_filament')S.filaments.push({id:uid(),name:a.name.trim(),material:a.material,brand:'',colorHex:a.colorHex,spoolWeight:a.spoolWeight,spoolPrice:a.spoolPrice,stockSpools:a.stockSpools,remaining:a.stockSpools?a.spoolWeight:0,note:''});
- else if(a.type==='add_product')S.products.push({id:uid(),name:a.name.trim(),filamentId:a.filamentId,weightG:a.weightG,printHours:a.printHours,printMin:a.printMin,qtyPerPlate:1,postMin:null,packaging:null,multiplier:2.5,priceOverride:a.priceOverride??null,stock:a.stock,description:'',emoji:'cube',active:true,sku:''});
- else if(a.type==='set_price')S.products.find(x=>x.id===a.id).priceOverride=a.priceOverride;
- else if(a.type==='set_filament_price')S.filaments.find(x=>x.id===a.id).spoolPrice=a.spoolPrice;
- else if(a.type==='set_electricity')S.settings.elecPricePerKwh=a.elecPricePerKwh;
- save();aiPending=null;aiMessages.push({role:'assistant',text:'C’est enregistré dans ton atelier.'});render();toast('Modification enregistrée ✓');}
+
+async function sendAI(e) {
+  e.preventDefault();
+  if (aiBusy) return;
+  if (aiPending) { toast('Confirme ou annule d’abord la proposition en cours.'); return; }
+  const input = document.getElementById('ai-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  aiMessages.push({ role: 'user', text });
+  aiBusy = true;
+  const btn = document.getElementById('ai-send');
+  if (btn) btn.disabled = true;
+  paintAI();
+
+  try {
+    const messages = [
+      { role: 'system', content: aiSystemPrompt() },
+      ...aiMessages.slice(-10).map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }))
+    ];
+    const res = await aiFetch(messages);
+    const data = await res.json();
+    if (!res.ok) throw Error(data.error || 'Erreur de connexion');
+    let out;
+    try { out = JSON.parse(data.content); }
+    catch (e) { throw Error('réponse illisible de l’assistant'); }
+
+    const raw = Array.isArray(out.actions) ? out.actions
+      : (out.action ? [out.action] : []);
+    const valid = [];
+    const errors = [];
+    for (const a of raw.slice(0, 20)) {
+      try { valid.push(validateAI(a)); }
+      catch (err) { errors.push(err.message); }
+    }
+
+    let msg = String(out.message || '').trim();
+    if (!valid.length && !msg) msg = 'Je n’ai pas compris la demande. Reformule-la ?';
+    if (errors.length) msg += (msg ? '\n\n' : '') + 'Certaines actions ont été ignorées : ' + errors.join(' ; ');
+    aiMessages.push({ role: 'assistant', text: msg || 'Prêt.' });
+    if (valid.length) aiPending = { actions: valid };
+  } catch (err) {
+    aiMessages.push({ role: 'assistant', text: 'Impossible de répondre : ' + err.message + '.' });
+  } finally {
+    aiBusy = false;
+    const b = document.getElementById('ai-send');
+    if (b) b.disabled = false;
+    paintAI();
+  }
+}
 
 /* ---------------- RENDU ---------------- */
 function render() {
