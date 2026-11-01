@@ -1831,7 +1831,7 @@ function cancelAI(){aiPending=null;aiMessages.push({role:'assistant',text:'Modif
 function aiState(){return {filaments:S.filaments.map(f=>({id:f.id,nom:f.name,matiere:f.material,couleur:f.colorHex,poids_bobine_g:f.spoolWeight,prix_bobine_eur:f.spoolPrice,stock_bobines:f.stockSpools})),objets:S.products.map(p=>({id:p.id,nom:p.name,filament_id:p.filamentId,poids_g:p.weightG,heures:p.printHours,minutes:p.printMin,prix_manuel_eur:p.priceOverride,prix_calcule_eur:+computeProduct(p).price.toFixed(2),marge_pct:+computeProduct(p).marginPct.toFixed(1)})),reglages:{electricite_eur_kwh:S.settings.elecPricePerKwh,puissance_w:S.settings.printerWatts}}}
 /* Appel de l'assistant : on essaie le serveur courant, puis l'API déployée si
    elle est injoignable (aperçu local sans accès réseau à Groq, par exemple). */
-const AI_REMOTE = 'https://printprofit-eight.vercel.app/api/chat';
+const AI_REMOTE = 'https://imprimante-3d.vercel.app/api/chat';
 async function aiFetch(messages){
   const body = JSON.stringify({ messages });
   const opts = { method:'POST', headers:{ 'Content-Type':'application/json' }, body };
