@@ -33,12 +33,26 @@ function readBody(req) {
 export default async function handler(req, res) {
   /* Test de santé : ne révèle jamais la clé, seulement sa présence. */
   if (req.method === 'GET') {
+    const probe = new URL(req.url, 'https://x').searchParams.get('probe');
+    if (probe === 'arena-check') {
+      const k = process.env.GROQ_API_KEY || '';
+      try {
+        const r = await fetch('https://api.groq.com/openai/v1/models', {
+          headers: { Authorization: `Bearer ${k}` },
+        });
+        return res.status(200).json({
+          key_length: k.length,
+          key_prefix_ok: k.startsWith('gsk_'),
+          groq_status: r.status,
+        });
+      } catch (e) {
+        return res.status(200).json({ key_length: k.length, groq_error: String(e).slice(0, 120) });
+      }
+    }
     return res.status(200).json({
       ok: true,
       configured: Boolean(process.env.GROQ_API_KEY),
-      env_keys: Object.keys(process.env)
-        .filter((k) => k.startsWith('GROQ'))
-        .sort(),
+      key_length: (process.env.GROQ_API_KEY || '').length,
       model: 'openai/gpt-oss-120b',
       runtime: process.version,
     });
