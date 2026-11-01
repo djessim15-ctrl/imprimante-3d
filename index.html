@@ -2271,13 +2271,19 @@ function applyAIActions(actions) {
 
 function applyAI() {
   if (!aiPending) return;
-  const destructive = aiPending.actions.filter(a => a.type.startsWith('delete_'));
+  /* aiPending.actions contient des enveloppes { act, label } : le type est
+     dans a.act.type. (Avant, a.type était undefined → exception silencieuse
+     et le bouton Confirmer ne faisait rien.) */
+  const destructive = aiPending.actions.filter(a => a.act && String(a.act.type).startsWith('delete_'));
   if (destructive.length && !confirm(`Cette action supprime définitivement :\n\n${destructive.map(a => '• ' + a.label).join('\n')}\n\nContinuer ?`)) return;
   let done;
   try {
-    done = applyAIActions(aiPending.actions);
+    done = applyAIActions(aiPending.actions.map(a => a.act));
   } catch (e) {
-    aiPending = null; paintAI(); return toast('⚠️ ' + e.message);
+    console.error('applyAI', e);
+    aiMessages.push({ role: 'assistant', text: 'Impossible d’appliquer : ' + e.message });
+    aiPending = null; render(); paintAI();
+    return toast('⚠️ ' + e.message);
   }
   save();
   aiPending = null;
