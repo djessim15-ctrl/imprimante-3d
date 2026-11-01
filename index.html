@@ -260,7 +260,8 @@ const DEFAULTS = () => ({
     // atelier
     laborPerHour: 8,          // €/h (info : valorisation indicative de ton temps)
     includeLabor: false,      // compter ton temps dans le coût ? (non par défaut)
-    flowGPerHour: 12,         // débit matière moyen (g/h) pour estimer un poids sans le slicer
+    flowGPerHour: 20,         // débit matière moyen (g/h) — Ender 3 V3 SE, profil réaliste
+    flowMaxMm3s: 15,          // débit volumique max du hotend d'origine (mm3/s)
     includeWear: false,       // compter l'usure machine + entretien ? (non)
     includePackaging: false,  // compter l'emballage ? (non)
     postProcessMin: 10,       // min de préparation/finition par objet (défaut)
@@ -339,9 +340,27 @@ function save() {
    Le vrai poids reste celui affiché par le slicer. */
 function debitFilament(f) {
   const st = S.settings || {};
-  const parDefaut = Number(st.flowGPerHour) || 12;
+  const parDefaut = Number(st.flowGPerHour) || 20;
   const perso = f && Number(f.flowGPerHour) > 0 ? Number(f.flowGPerHour) : null;
   return perso || parDefaut;
+}
+
+/* Débit massique théorique d'un hotend : mm3/s × masse volumique.
+   PLA = 1,24 g/cm3 ; le filament 1,75 mm pèse 2,98 g/m. */
+const MASSE_PLA_G_MM3 = 1.24 / 1000;
+function debitTheoriqueGParHeure(mm3s) {
+  return (Number(mm3s) || 0) * MASSE_PLA_G_MM3 * 3600;
+}
+
+/* Calibrage à partir d'objets déjà imprimés : moyenne pondérée poids/heures. */
+function calibrerDebit(objets) {
+  let grammes = 0, heures = 0;
+  (objets || []).forEach(o => {
+    const g = Number(o && o.poids) || 0;
+    const h = Number(o && o.heures) || 0;
+    if (g > 0 && h > 0) { grammes += g; heures += h; }
+  });
+  return heures > 0 ? grammes / heures : 0;
 }
 
 function estimatedWeightG(hours, filamentId) {
@@ -1766,8 +1785,19 @@ function viewSettings() {
           ${fld('failRatePct', 'Taux de ratés %', st.failRatePct, 1, '5–15 % est réaliste')}
           ${fld('laborPerHour', 'Ton temps €/h (info)', st.laborPerHour, 0.5)}
         </div>
-        ${fld('flowGPerHour', 'Débit matière (g/h)', st.flowGPerHour, 0.5,
-          'Sert à estimer un poids quand tu ne le saisis pas. Ordre de grandeur : 10 à 15 g/h creux, 25 à 35 g/h plein')}
+        <div class="row2">
+          ${fld('flowGPerHour', 'Débit matière moyen (g/h)', st.flowGPerHour, 0.5,
+            'Sert à estimer un poids quand tu ne le saisis pas. Ender 3 V3 SE : 20 g/h est un bon compromis')}
+          ${fld('flowMaxMm3s', 'Débit max hotend (mm³/s)', st.flowMaxMm3s, 1,
+            '0,4 mm d\'origine ≈ 15 mm³/s. Sert au calcul de la limite théorique')}
+        </div>
+        <div class="hint" style="margin:-4px 0 10px">
+          Hotend à ${num(st.flowMaxMm3s, 0)} mm³/s → ${num(debitTheoriqueGParHeure(st.flowMaxMm3s), 0)} g/h en pointe.
+          En moyenne sur une impression réelle (déplacements, périmètres ralentis), compte 25 à 40 % de cette valeur,
+          soit ${num(debitTheoriqueGParHeure(st.flowMaxMm3s) * 0.25, 0)} à ${num(debitTheoriqueGParHeure(st.flowMaxMm3s) * 0.40, 0)} g/h.
+          Ton réglage actuel : <b style="color:var(--acc)">${num(st.flowGPerHour, 1)} g/h</b>.
+        </div>
+        <button class="btn" onclick="openCalibrageDebit()">⚖ Calibrer avec mes objets réels</button>
         <h3 style="font-size:12px;color:var(--muted);margin:16px 0 4px">CE QUI ENTRE DANS LE COÛT</h3>
         <div class="hint" style="margin-bottom:8px">Matière et électricité sont toujours comptées. Coche ce que tu veux y ajouter.</div>
         ${[['includeWear', 'Usure machine + entretien', `${money(st.printerPrice)} / ${num(st.printerLifeHours, 0)} h + ${money(st.maintenancePerHour)}/h`],
@@ -1826,6 +1856,69 @@ function viewSettings() {
     </div>
   </div>`;
 }
+/* Calibrage : trois objets dont on connaît poids et durée réels. */
+function openCalibrageDebit() {
+  const st = S.settings;
+  const exemples = S.products.filter(p => Number(p.weightG) > 0 && (Number(p.printHours) || 0) + (Number(p.printMin) || 0) > 0).slice(0, 3);
+  const ligne = (i, nom, poids, heures) => `
+    <div class="row3" style="margin-bottom:8px">
+      <div class="field"><label>Objet ${i + 1}</label><input id="cal_n${i}" value="${esc(nom || '')}" placeholder="ex : pot de fleurs"></div>
+      <div class="field"><label>Poids réel (g)</label><input type="number" id="cal_g${i}" value="${poids || ''}" step="1" min="0" placeholder="poids pesé"></div>
+      <div class="field"><label>Durée réelle (h)</label><input type="number" id="cal_h${i}" value="${heures || ''}" step="0.05" min="0" placeholder="ex : 6.75"></div>
+    </div>`;
+  openModal(`
+    <header><h3>Calibrer mon débit</h3><button class="x" onclick="closeModal()">✕</button></header>
+    <div class="body">
+      <div class="tip">Prends <b>trois objets que tu as déjà imprimés</b>, pèse-les et note la durée affichée par l'imprimante.
+        Le rapport poids ÷ durée donne ton débit réel. Trois objets valent mieux qu'un : les petits détails faussent une mesure isolée.</div>
+      ${ligne(0, exemples[0] && exemples[0].name, exemples[0] && exemples[0].weightG, exemples[0] ? (exemples[0].printHours || 0) + (exemples[0].printMin || 0) / 60 : null)}
+      ${ligne(1, exemples[1] && exemples[1].name, exemples[1] && exemples[1].weightG, exemples[1] ? (exemples[1].printHours || 0) + (exemples[1].printMin || 0) / 60 : null)}
+      ${ligne(2, exemples[2] && exemples[2].name, exemples[2] && exemples[2].weightG, exemples[2] ? (exemples[2].printHours || 0) + (exemples[2].printMin || 0) / 60 : null)}
+      <div class="field"><label>Débit volumique annoncé de ton hotend (mm³/s)</label>
+        <input type="number" id="cal_q" value="${st.flowMaxMm3s || 15}" step="1" min="1">
+        <div class="hint">0,4 mm d'origine : ~15 mm³/s. Buse CHT ou hotend haute vitesse : 20 à 25.</div></div>
+      <div class="calcbox" id="cal_out"></div>
+    </div>
+    <footer>
+      <button class="btn ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn primary" onclick="appliqueCalibrage()">Utiliser ce débit</button>
+    </footer>`);
+  const refresh = () => {
+    const objs = [0, 1, 2].map(i => ({
+      poids: +document.getElementById('cal_g' + i).value || 0,
+      heures: +document.getElementById('cal_h' + i).value || 0
+    }));
+    const d = calibrerDebit(objs);
+    const q = +document.getElementById('cal_q').value || 0;
+    const theo = debitTheoriqueGParHeure(q);
+    document.getElementById('cal_out').innerHTML = d > 0 ? `
+      <div class="line"><span>Objets renseignés</span><b>${objs.filter(o => o.poids > 0 && o.heures > 0).length} / 3</b></div>
+      <div class="line total"><span>Débit mesuré chez toi</span><b>${num(d, 1)} g/h</b></div>
+      <div class="line"><span>Rendement estimé du hotend</span><b>${theo > 0 ? pct(d / theo * 100, 0) : '—'}</b></div>
+      <div class="line"><span>Actuel</span><b>${num(st.flowGPerHour, 1)} g/h</b></div>` : `
+      <div class="line"><span>Renseigne au moins un objet (poids + durée)</span><b>—</b></div>`;
+  };
+  ['cal_g0', 'cal_h0', 'cal_g1', 'cal_h1', 'cal_g2', 'cal_h2', 'cal_q'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', refresh);
+  });
+  refresh();
+}
+
+function appliqueCalibrage() {
+  const objs = [0, 1, 2].map(i => ({
+    poids: +document.getElementById('cal_g' + i).value || 0,
+    heures: +document.getElementById('cal_h' + i).value || 0
+  }));
+  const d = calibrerDebit(objs);
+  if (!(d > 0)) return toast('⚠️ Renseigne un poids et une durée');
+  S.settings.flowGPerHour = Math.round(d * 10) / 10;
+  const q = +document.getElementById('cal_q').value || 0;
+  if (q > 0) S.settings.flowMaxMm3s = q;
+  save(); closeModal(); render();
+  toast(`Débit calibré : ${num(S.settings.flowGPerHour, 1)} g/h ✓`);
+}
+
 function saveSettings() {
   const st = S.settings;
   ['printerName', 'shopName', 'shopTagline', 'shopContact', 'currency'].forEach(k => {
@@ -1833,7 +1926,7 @@ function saveSettings() {
   });
   ['printerPrice', 'printerLifeHours', 'maintenancePerHour', 'printerWatts', 'elecPricePerKwh', 'laborPerHour',
    'postProcessMin', 'failRatePct', 'packagingCost', 'shippingCost', 'platformFeePct', 'paymentFeePct',
-   'paymentFeeFixed', 'targetMarginPct', 'vatPct', 'flowGPerHour'].forEach(k => {
+   'paymentFeeFixed', 'targetMarginPct', 'vatPct', 'flowGPerHour', 'flowMaxMm3s'].forEach(k => {
     const el = document.getElementById('st_' + k); if (el) st[k] = +el.value || 0;
   });
   st.vatEnabled = document.getElementById('st_vatEnabled').checked;
