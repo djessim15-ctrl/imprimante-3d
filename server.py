@@ -16,7 +16,7 @@ class Handler(BaseHTTPRequestHandler):
    d=json.dumps(obj,ensure_ascii=False).encode(); self.send_response(code); self.send_header('Content-Type','application/json; charset=utf-8'); self.end_headers(); self.wfile.write(d)
   now=time.time(); q=requests[self.client_address[0]]
   while q and q[0]<now-60: q.popleft()
-  if len(q)>=12: return reply(429,{'error':'Trop de demandes, réessaie dans une minute.'})
+  if len(q)>=30: return reply(429,{'error':'Trop de demandes, réessaie dans une minute.'})
   q.append(now)
   try:
    size=int(self.headers.get('Content-Length','0'))
@@ -25,7 +25,7 @@ class Handler(BaseHTTPRequestHandler):
    if not key: return reply(400,{'error':'Renseigne ta clé Groq dans le chat.'})
    messages=body.get('messages',[])
    if not isinstance(messages,list) or len(messages)>20: return reply(400,{'error':'Conversation trop longue.'})
-   payload=json.dumps({'model':'openai/gpt-oss-120b','messages':messages,'temperature':0.2,'reasoning_effort':'low','max_tokens':1600,'response_format':{'type':'json_object'}}).encode()
+   payload=json.dumps({'model':os.environ.get('GROQ_MODEL','openai/gpt-oss-120b'),'messages':messages,'temperature':0.2,'reasoning_effort':'low','max_tokens':2400,'response_format':{'type':'json_object'}}).encode()
    r=urllib.request.Request('https://api.groq.com/openai/v1/chat/completions',data=payload,headers={'Authorization':'Bearer '+key,'Content-Type':'application/json','User-Agent':'curl/8.0'})
    with urllib.request.urlopen(r,timeout=50) as resp: result=json.load(resp)
    return reply(200,{'content':result['choices'][0]['message']['content']})

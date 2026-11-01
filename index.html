@@ -204,8 +204,34 @@ body{background:radial-gradient(ellipse at 90% 0%,#25293b 0,transparent 42%),#0c
 .navlabel{letter-spacing:1.5px;color:#707683}.main{padding:42px 44px 70px}.page{font-size:30px!important;letter-spacing:-1px!important}.sub{font-size:14px!important}
 .card,.panel{background:#171b24;border:1px solid #2b303b;box-shadow:none;border-radius:18px}.card{padding:20px}.kpi .val{font-size:30px}.panel{padding:22px}.btn{border-radius:11px}.btn.primary{background:#c8f36d;color:#1a2410;box-shadow:none}.btn.primary:hover{background:#dbff99}.tw{border-color:#303541}table{background:#171b24}th{background:#12161e}tbody tr:hover{background:#202530}
 .ai-new{margin-left:auto;color:#c8f36d;font-size:9px;letter-spacing:.08em}.ai-header{margin:4px 0 32px}.ai-kicker{font-size:10px;color:#c8f36d;letter-spacing:.15em;font-weight:800}.ai-header h2{font-size:clamp(32px,4vw,52px);line-height:1.05;letter-spacing:-2px;margin:15px 0}.ai-header em{font-style:normal;color:#c8f36d}.ai-header p{color:#a0a4af;font-size:15px}.ai-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:20px;align-items:start}.ai-panel,.ai-side,.ai-help{background:#171b24;border:1px solid #303440;border-radius:20px}.ai-panel{overflow:hidden}.ai-title{padding:20px 23px;border-bottom:1px solid #303440;display:flex;justify-content:space-between;align-items:center}.ai-title b{font-size:15px}.ai-title small{display:block;color:#9499a5;margin-top:5px}.ai-dot{font-size:10px;letter-spacing:.07em;color:#c8f36d}.ai-messages{height:350px;overflow:auto;padding:22px;display:flex;flex-direction:column;gap:14px}.ai-welcome{margin:auto;text-align:center;max-width:320px}.welcome-icon{display:grid;place-items:center;width:50px;height:50px;margin:0 auto 18px;border-radius:17px;background:#323e28;color:#c8f36d;font-size:25px}.ai-welcome h3{font-size:18px;margin-bottom:8px}.ai-welcome p,.ai-side p,.ai-help p{color:#9fa4b0;font-size:13px;line-height:1.6}.bubble{max-width:85%;border-radius:15px;padding:14px 16px;background:#252a35}.bubble.mine{align-self:flex-end;background:#343e28}.bubble span{font-size:9px;font-weight:800;color:#c8f36d;letter-spacing:.1em}.bubble p{margin-top:7px;line-height:1.55;font-size:14px;white-space:pre-wrap}.ai-form{margin:0 18px 8px;padding:9px;display:flex;gap:10px;background:#11141b;border:1px solid #383e49;border-radius:15px;align-items:end}.ai-form textarea{flex:1;resize:none;border:0;background:transparent;outline:0;padding:9px;color:#fff;min-width:0;font-size:13px}.ai-form button{padding:12px 16px}.ai-note{padding:0 23px 18px;color:#7f8694;font-size:11px}.ai-side{padding:22px}.ai-side-icon{font-size:24px;color:#c8f36d}.ai-side h3{font-size:20px;line-height:1.25;margin:16px 0 8px}.ai-side>b{display:block;margin:25px 0 9px;color:#838b98;font-size:9px;letter-spacing:.12em}.ai-side button{display:block;width:100%;text-align:left;padding:11px 0;border:0;border-bottom:1px solid #303440;background:none;color:#e2e4e7;cursor:pointer;font-size:12px}.ai-side button:hover{color:#c8f36d}.ai-help{margin-top:16px;padding:18px 22px;font-size:13px}.ai-help p{margin-top:6px}.ai-confirm{margin:0 18px 14px;padding:15px;border-radius:14px;background:#293322;border:1px solid #536739;font-size:13px}.ai-confirm pre{white-space:pre-wrap;font:inherit;line-height:1.5;margin:10px 0 14px;color:#e7f4d7}
+@media(max-width:640px){.ai-tools{display:none}.ai-kpis{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:900px){.ai-layout{grid-template-columns:1fr}.ai-layout aside{display:none}.main{padding:24px 20px 50px}.ai-messages{height:310px}}
 
+
+/* ---------- Assistant IA v2 ---------- */
+.ai-dot.down{color:#f0a35e}
+.ai-tools{display:flex;gap:8px;align-items:center;margin-left:auto;margin-right:14px}
+.ai-tools button{background:#11141b;border:1px solid #383e49;color:#9aa3b1;border-radius:9px;padding:5px 9px;font-size:11px;cursor:pointer}
+.ai-tools button:hover{color:#c8f36d;border-color:#536739}
+.ai-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;padding:0 18px;margin:14px 0 0}
+.ai-kpi{background:#11141b;border:1px solid #303440;border-radius:11px;padding:8px 10px}
+.ai-kpi b{display:block;font-size:15px;color:#c8f36d;line-height:1.25}
+.ai-kpi span{font-size:9px;color:#8e95a3;letter-spacing:.08em;text-transform:uppercase}
+.ai-chip{padding:6px 10px;border-radius:999px;border:1px solid #383e49;background:#11141b;color:#cfd6e2;font-size:11.5px;cursor:pointer}
+.ai-chip:hover{border-color:#c8f36d;color:#c8f36d}
+.ai-tries{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.ai-tries .ai-chip{font-size:11px;padding:5px 9px;background:#2c3625;border-color:#4d5c3a}
+.ai-actions{display:flex;gap:7px;flex-wrap:wrap;padding:12px 18px 0}
+.ai-insights{padding:12px 18px 0;font-size:12px;color:#cfd6e2}
+.ai-insights b{display:block;font-size:10px;letter-spacing:.1em;color:#8e95a3;margin-bottom:6px}
+.ai-insights li{padding-left:13px;position:relative;line-height:1.55;margin-bottom:4px}
+.ai-insights li:before{content:'▸';position:absolute;left:0;color:#c8f36d}
+.ai-prop-item{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px dashed #3f4b30;font-size:12.5px}
+.ai-prop-item span{flex:1;line-height:1.5}
+.ai-prop-item button{background:none;border:0;color:#8d9a78;cursor:pointer;font-size:12px;padding:0 2px}
+.ai-prop-item button:hover{color:#f0a35e}
+.bubble p code{border-radius:4px}
+.bubble.warn p{color:#ffd9b0}
 </style>
 </head>
 <body>
@@ -2091,58 +2117,298 @@ function seedDemo() {
 }
 
 /* ===========================================================================
-   ASSISTANT AGENT
-   L'IA renvoie une LISTE d'actions ; l'utilisateur voit le détail, puis
-   confirme. Tout passe par les mêmes garde-fous que l'interface manuelle.
+   ASSISTANT AGENT (v2)
+   L'IA renvoie une LISTE d'actions ; l'utilisateur voit le détail, peut retirer
+   une ligne, puis confirme. Tout passe par les mêmes garde-fous que l'UI.
    =========================================================================== */
-let aiMessages = [], aiPending = null, aiBusy = false;
+let aiMessages = [], aiPending = null, aiBusy = false, aiContext = 'auto', aiLastError = '';
+
+/* Contexte de la fenêtre : l'assistant répond en priorité sur cet écran. */
+const AI_CONTEXT_TABS = {
+  auto: 'Détection automatique', dash: 'Tableau de bord', ai: 'Assistant',
+  calc: 'Simulateur de coût', fil: 'Filaments', prod: 'Objets',
+  shop: 'Boutique', sales: 'Ventes', stats: 'Rentabilité',
+  settings: 'Réglages', data: 'Données'
+};
 
 const AI_EXAMPLES = [
-  'Ajoute 10 bobines de PLA noir 1 kg à 20 €',
-  'Crée un porte-clés de 12 g en 25 min, prix 6 €',
-  'Mets tous mes prix à +15 %',
-  'Supprime les filaments que je n’utilise pas',
-  'Quels objets ont la meilleure marge ?',
+  'Fais un point complet de mon atelier',
+  'Crée un porte-clés en 45 min, je ne connais pas le poids',
+  'Passe tous mes prix à +15 %',
+  'Combien je gagne vraiment sur chaque objet ?',
+  'Quel filament faut-il racheter en priorité ?',
+  'Est-ce que mes prix couvrent mes frais Etsy ?',
+  'Enregistre une vente de 2 vases à 30 € à Marie, canal Etsy',
+  'Mets mes réglages sur une Ender 3 V3 SE neuve',
+  'Cherche les incohérences dans mes données',
   'Passe le tarif électricité à 25 c/kWh'
 ];
 
+/* ---------------- contexte de l'écran courant ---------------- */
+function aiFocus() {
+  const t = aiContext === 'auto' ? (currentTab || 'dash') : aiContext;
+  return { tab: t, label: AI_CONTEXT_TABS[t] || t };
+}
+
+/* ---------------- bloc d'état envoyé au modèle ---------------- */
+function aiState() {
+  /* On borne le contexte : les demandes restent sous la limite de taille. */
+  const MAXF = 60, MAXP = 60, MAXS = 25;
+  const iso = (d) => { try { return (d.getTime() - d.getTimezoneOffset() * 60000) / 86400000 | 0; } catch (e) { return 0; } };
+  const nowDays = Math.floor(Date.now() / 86400000);
+
+  const fils = S.filaments.slice(0, MAXF).map(f => {
+    const left = spoolLeftG(f);
+    return {
+      id: f.id, nom: f.name, matiere: f.material, couleur: f.colorHex, marque: f.brand || '',
+      poids_bobine_g: f.spoolWeight, prix_bobine_eur: f.spoolPrice,
+      bobines_neuves: f.stockSpools || 0, bobine_ouverte_g: f.remaining || 0,
+      reste_total_g: Math.round(left),
+      prix_au_g: +filamentPricePerGram(f).toFixed(4),
+      valeur_stock_eur: +(left * filamentPricePerGram(f)).toFixed(2)
+    };
+  });
+  const prods = S.products.slice(0, MAXP).map(p => {
+    const c = computeProduct(p);
+    const vendus = S.sales.filter(s => s.productId === p.id).reduce((b, s) => b + (Number(s.qty) || 1), 0);
+    return {
+      id: p.id, nom: p.name, filament_id: p.filamentId,
+      poids_g: p.weight === 0 ? null : Math.round(p.weight * 10) / 10,
+      poids_estime: !!c.weightEstimated,
+      heures: p.printHours, minutes: p.printMin, objets_par_plateau: p.qtyPerPlate,
+      finition_min: p.postMin, emballage_eur: p.packaging, coefficient: p.multiplier,
+      prix_manuel_eur: p.priceOverride, prix_calcule_eur: +c.price.toFixed(2),
+      prix_revient_eur: +c.costs.variable.toFixed(2), marge_pct: +c.marginPct.toFixed(1),
+      stock: p.stock, vendus, visible: p.active, sku: p.sku, description: p.description
+    };
+  });
+  const sales = S.sales.slice(-MAXS).map(s => {
+    const r = saleProfit(s);
+    const d = iso(new Date(s.date + 'T12:00:00'));
+    return {
+      id: s.id, produit: s.productName, qte: s.qty, prix_u_eur: s.unitPrice,
+      client: s.customer || '', canal: s.channel || 'Direct', statut: s.status,
+      il_y_a_jours: nowDays - d,
+      port_facture_eur: s.shipping ?? 0, port_reel_eur: s.shippingCost ?? 0,
+      encaisse_eur: +r.gross.toFixed(2), benefice_eur: +r.profit.toFixed(2)
+    };
+  });
+  const st = S.settings;
+  const ventes = S.sales.map(saleProfit);
+  const rev = ventes.reduce((a, r) => a + r.gross, 0);
+  const prof = ventes.reduce((a, r) => a + r.profit, 0);
+  const stockG = S.filaments.reduce((a, f) => a + spoolLeftG(f), 0);
+
+  return {
+    contexte_ecran: aiFocus().label,
+    totaux: {
+      filaments: S.filaments.length, objets: S.products.length, ventes: S.sales.length,
+      ca_total_eur: +rev.toFixed(2), benefice_total_eur: +prof.toFixed(2),
+      marge_moyenne_pct: rev > 0 ? +((prof / rev) * 100).toFixed(1) : 0,
+      stock_filament_kg: +(stockG / 1000).toFixed(2)
+    },
+    filaments: fils, objets: prods, ventes_recentes: sales,
+    postes_de_cout_actifs: {
+      matiere_et_electricite: true,
+      taux_rate_pct: st.failRatePct,
+      temps_de_travail_compte: !!st.includeLabor,
+      usure_machine_comptee: !!st.includeWear,
+      emballage_compte: !!st.includePackaging
+    },
+    reglages: {
+      nom_atelier: st.shopName, imprimante: st.printerName,
+      electricite_eur_kwh: st.elecPricePerKwh, puissance_w: st.printerWatts,
+      debit_g_par_h: st.flowGPerHour, debit_max_mm3_s: st.flowMaxMm3s,
+      main_oeuvre_eur_h: st.laborPerHour, finition_min: st.postProcessMin,
+      taux_rate_pct: st.failRatePct, emballage_eur: st.packagingCost,
+      livraison_eur: st.shippingCost, cout_reel_port_eur: +(st.shippingCost * 0.6).toFixed(2),
+      commission_pct: st.platformFeePct, frais_paiement_pct: st.paymentFeePct,
+      frais_fixes_eur: st.paymentFeeFixed, marge_cible_pct: st.targetMarginPct,
+      tva_pct: st.vatPct, prix_ttc: st.vatEnabled,
+      coefficient_prix_defaut: 2.5
+    },
+    methode: 'Prix conseillé = (coût × coefficient + frais fixes) / (1 − commission − frais paiement). Coût par défaut = matière (+ ratés) + électricité (+ ratés) seulement.'
+  };
+}
+
+/* Le message d'erreur de la dernière requête (429, clé, réseau…) est donné au
+   modèle pour qu'il puisse s'expliquer sans se répéter. */
+function aiSystemPrompt() {
+  const mats = 'PLA, PLA+, PETG, ABS, ASA, TPU, Nylon, PC, PVA';
+  const emojis = Object.keys(ICONS).filter(k => k !== 'cart').join(', ');
+  return `Tu es l'assistant agent de PrintProfit, un atelier d'impression 3D tenu par un artisan français.
+Tu parles français, tu es concret, direct et chaleureux. Tu réponds TOUJOURS en JSON valide, sans texte autour.
+
+FORMAT EXACT
+{"message":"réponse en français (2 à 5 phrases max, sans markdown)","actions":[],"suggestions":["question de suivi courte","…"],"suggestions_actions":[{"label":"ce que ça fait","action":{…}}]}
+
+"actions" est une LISTE (0 à 20 éléments) appliquée après confirmation.
+"suggestions" : 0 à 3 questions de suivi que l'utilisateur peut cliquer.
+"suggestions_actions" : 0 à 3 actions PRÊTES que l'utilisateur peut déclencher d'un clic. L'app les numérote prop1, prop2, prop3 : tu peux ensuite les appliquer avec {"type":"apply_suggestion","id":"prop2"}. Utilise-les pour les corrections que tu recommandes sans les imposer (ex. objets sous-margés, prix à réaligner, vieux stocks).
+
+ACTIONS DISPONIBLES (utilise exactement ces noms de champs)
+1. {"type":"add_filament","name":str,"material":str,"colorHex":"#rrggbb","spoolWeight":nb,"spoolPrice":nb,"stockSpools":nb,"remaining":nb,"brand":str}
+2. {"type":"add_filaments","items":[add_filament,…]}
+3. {"type":"update_filament","id":str, + champs à changer}
+4. {"type":"delete_filament","id":str}
+5. {"type":"add_product","name":str,"filamentId":str?,"weightG":nb?,"printHours":nb,"printMin":nb,"qtyPerPlate":nb?,"postMin":nb?,"packaging":nb?,"multiplier":nb?,"priceOverride":nb?,"stock":nb?,"description":str?,"emoji":str?,"active":bool?}
+6. {"type":"add_products","items":[add_product,…]}
+7. {"type":"update_product","id":str, + champs à changer}
+8. {"type":"delete_product","id":str}
+9. {"type":"update_settings","elecPricePerKwh":nb?,"printerWatts":nb?,"flowGPerHour":nb?,"flowMaxMm3s":nb?,"failRatePct":nb?,"laborPerHour":nb?,"printerPrice":nb?,"printerLifeHours":nb?,"maintenancePerHour":nb?,"packagingCost":nb?,"shippingCost":nb?,"platformFeePct":nb?,"paymentFeePct":nb?,"paymentFeeFixed":nb?,"targetMarginPct":nb?,"vatPct":nb?,"vatEnabled":bool?,"includeLabor":bool?,"includeWear":bool?,"includePackaging":bool?,"shopName":str?,"shopTagline":str?,"shopContact":str?,"printerName":str?}
+10. {"type":"delete_sales","ids":[str,…]}
+11. {"type":"create_sale","productId":str?,"productName":str?,"qty":nb,"unitPrice":nb?,"shipping":nb?,"shippingCost":nb?,"customer":str?,"channel":"Direct|Etsy|Vinted|Marketplace|Instagram|Boutique|Salon|Autre","status":"À imprimer|En cours|Expédié|Livré|Annulé","daysAgo":nb?,"note":str?}
+12. {"type":"update_sale_status","status":str,"ids":[str,…]?} ou {"type":"update_sale_status","status":str,"produit":str,"daysAgo":nb?} (cible la vente la plus récente correspondante)
+13. {"type":"add_stock","amountG":nb?,"spools":nb?,"productId":str?,"productName":str?,"filamentId":str?,"filamentName":str?} (achat reçu : ajoute des bobines neuves et/ou du poids, et/ou du stock d'objets)
+14. {"type":"goal_price","marginPct":nb?,"multiplier":nb?,"productId":str?,"productName":str?,"scope":"all|product"} (calcule puis fixe des prix pour atteindre la marge visée ou le coefficient demandé)
+15. {"type":"apply_suggestion","id":str} (applique une suggestion déjà présentée par toi, sans re-fournir les paramètres)
+16. {"type":"run_migration","values":{...}} (pré-remplit tous les réglages d'une machine)
+
+RÈGLES
+- Utilise EXACTEMENT les ids présents dans l'état. N'invente JAMAIS d'id : si tu ne connais pas l'id d'un objet ou d'un filament, ajoute update_product/update_filament avec "productName"/"name" n'est PAS supporté → dans ce cas choisis plutôt goal_price avec "produit", ou create_sale avec "productName".
+- Tu peux enchaîner plusieurs actions dans une réponse (créer des filaments puis des objets, etc.).
+- Pour « ajoute 10 bobines de PLA noir », utilise un seul add_filament avec "stockSpools":10.
+- Couleurs hex réalistes : noir #111827, blanc #ffffff, rouge #ef4444, bleu #3b82f6, vert #22c55e, gris #9ca3af, or #fbbf24, naturel #e5e7eb, rose #ec4899, orange #f97316, violet #8b5cf6.
+- Matières : ${mats}. "emoji" : ${emojis}, sinon "cube".
+- Poids d'un objet FACULTATIF : sans poids l'app l'estime depuis le temps (débit ${S.settings.flowGPerHour} g/h) et l'affiche comme estimé. En revanche n'invente jamais un temps d'impression : s'il manque, demande-le dans "message" avec "actions":[].
+- Coût par défaut = matière + ratés + électricité. Le temps de travail, l'usure et l'emballage sont OPTIONNELS et désactivés. Ne les compte pas dans tes calculs sauf si l'utilisateur le demande explicitement.
+- Prix conseillé = (coût × coefficient + frais fixes) / (1 − commission − frais paiement). Pour un prix, cite toujours : coût, prix, bénéfice, marge.
+- Quand l'utilisateur demande « la meilleure marge », « qu'est-ce qui rapporte », ou un audit : calcule toi-même à partir de l'état et donne des chiffres précis, avec "actions":[].
+- Si une info indispensable manque, pose UNE seule question ciblée et renvoie "actions":[].
+- Ne dis jamais qu'une modification est déjà faite : elle sera proposée puis confirmée. Formule au présent de proposition (« je peux », « voici ce que je vais changer »).
+- Nombres JSON, jamais de chaînes numériques. Pas de markdown, pas de liste à puces dans "message".
+- Le contexte de l'écran (champ contexte_ecran) indique ce que l'utilisateur regarde : adapte tes réponses et tes suggestions à cet écran.
+
+DÉTECTION D'ERREURS : si l'état te semble incohérent (objet sans temps, prix inférieur au coût, stock négatif, marge < 10 %), signale-le dans "message" et propose la correction avec les actions adéquates.
+
+État réel de l'atelier (JSON) :
+${JSON.stringify(aiState())}${aiLastError ? '\n\nDernière erreur technique rencontrée : ' + aiLastError : ''}`;
+}
+
+/* ---------------- suggestions enregistrées (survit au rendu) ---------------- */
+let aiSuggested = [];
+function aiSuggestionChips() {
+  return aiSuggested.length
+    ? `<div class="ai-actions">${aiSuggested.map((s, i) => `<button class="ai-chip" onclick="aiSuggestion(${i})">${esc(s)}</button>`).join('')}</div>`
+    : '';
+}
+function aiSuggestion(i) {
+  const s = aiSuggested[i];
+  if (!s) return;
+  const input = document.getElementById('ai-input');
+  if (!input) return;
+  input.value = s;
+  sendAI();
+}
+
+/* ---------------- indicateurs + diagnostics ---------------- */
+function aiInsights() {
+  const out = [];
+  const withC = S.products.map(p => ({ p, c: computeProduct(p) }));
+  const low = withC.filter(x => x.c.price > 0 && x.c.marginPct < 25).sort((a, b) => a.c.marginPct - b.c.marginPct);
+  if (low.length) out.push(`${low.length} objet${low.length > 1 ? 's' : ''} sous 25 % de marge — le plus faible : « ${low[0].p.name} » (${pct(low[0].c.marginPct, 0)}). Je sais recalculer les prix.`);
+  const sansTemps = S.products.filter(p => ((Number(p.printHours) || 0) + (Number(p.printMin) || 0)) <= 0);
+  if (sansTemps.length) out.push(`${sansTemps.length} objet${sansTemps.length > 1 ? 's' : ''} sans temps d'impression : le coût est faux.`);
+  const vide = S.filaments.filter(f => spoolLeftG(f) <= 0);
+  const bas = S.filaments.filter(f => { const l = spoolLeftG(f); return l > 0 && l < 150; });
+  if (bas.length) out.push(`Bobines bientôt vides : ${bas.slice(0, 3).map(f => `${f.name} (${Math.round(spoolLeftG(f))} g)`).join(', ')}.`);
+  if (vide.length) out.push(`${vide.length} filament${vide.length > 1 ? 's' : ''} à sec : ${vide.slice(0, 3).map(f => f.name).join(', ')}.`);
+  const todo = S.sales.filter(s => s.status === 'À imprimer' || s.status === 'En cours');
+  if (todo.length) out.push(`${todo.length} vente${todo.length > 1 ? 's' : ''} à expédier (${todo.reduce((a, s) => a + (Number(s.qty) || 1), 0)} pièce${todo.length > 1 ? 's' : ''}).`);
+  const manque = S.products.filter(p => p.stock > 0 && p.stock <= 2);
+  if (manque.length) out.push(`${manque.length} objet${manque.length > 1 ? 's' : ''} en stock faible : ${manque.slice(0, 3).map(p => p.name).join(', ')}.`);
+  if (!out.length) out.push('Rien d’urgent : catalogue, stock et ventes sont cohérents.');
+  return out.slice(0, 4);
+}
+
+function aiKpiCards() {
+  const withC = S.products.map(p => computeProduct(p));
+  const ventes = S.sales.map(saleProfit);
+  const rev = ventes.reduce((a, r) => a + r.gross, 0);
+  const prof = ventes.reduce((a, r) => a + r.profit, 0);
+  const prixMoyen = withC.length ? withC.reduce((a, c) => a + c.price, 0) / withC.length : 0;
+  const marge = rev > 0 ? (prof / rev) * 100 : 0;
+  const stockG = S.filaments.reduce((a, f) => a + spoolLeftG(f), 0);
+  const kpi = (v, l) => `<div class="ai-kpi"><b>${v}</b><span>${l}</span></div>`;
+  return kpi(withC.length, 'objets')
+    + kpi(money(prixMoyen), 'prix moyen')
+    + kpi(pct(marge, 0), 'marge réelle')
+    + kpi(num(stockG / 1000, 1) + ' kg', 'filament')
+    + kpi(money(prof), 'bénéfice total');
+}
+
 function viewAI() {
+  const f = aiFocus();
   document.getElementById('view').innerHTML = `
   <div class="ai-header"><span class="ai-kicker">✦ TON ASSISTANT D’ATELIER</span>
     <h2>Demande.<br><em>Je m’occupe du reste.</em></h2>
-    <p>Je peux tout gérer : filaments, objets, prix, réglages, ventes. Je prépare les changements, tu confirmes.</p></div>
+    <p>Je lis ton atelier, je calcule, je prépare les changements. Tu valides d’un clic — rien ne part sans toi.</p></div>
   <div class="ai-layout"><section class="ai-panel">
-    <div class="ai-title"><div><b>Assistant PrintProfit</b><small>Propulsé par Groq · GPT-OSS</small></div><span class="ai-dot">● EN LIGNE</span></div>
+    <div class="ai-title"><div><b>Assistant PrintProfit</b><small>Groq · GPT-OSS 120B · ${esc(f.label)}</small></div>
+      <div class="ai-tools">
+        <button onclick="aiNewChat()" title="Repartir de zéro">↺ Nouveau</button>
+        <button onclick="aiCopy()" title="Copier la conversation">⧉ Copier</button>
+      </div>
+      <span class="ai-dot" id="ai-status">● EN LIGNE</span></div>
+    <div class="ai-kpis">${aiKpiCards()}</div>
+    ${aiSuggestionChips()}
     <div id="ai-messages" class="ai-messages"></div>
     <div id="ai-proposal"></div>
     <form class="ai-form" onsubmit="sendAI(event)">
-      <textarea id="ai-input" placeholder="Ex. Ajoute 10 bobines de PLA noir 1 kg à 20 €, et crée un porte-clés de 12 g…" rows="2" required></textarea>
-      <button class="btn primary" id="ai-send">Envoyer ↑</button>
+      <textarea id="ai-input" placeholder="Ex. Crée un vase de 6 h et vérifie si mes prix couvrent les frais Etsy…" rows="2" required
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI(event)}"></textarea>
+      <button class="btn primary" id="ai-send" type="submit">Envoyer ↑</button>
     </form>
-    <div class="ai-note">Les données de ton atelier sont envoyées à Groq pour comprendre la demande. Rien n’est appliqué sans ta confirmation.</div>
+    <div class="ai-note">Données envoyées à Groq pour comprendre la demande. Rien n’est appliqué sans confirmation.</div>
   </section>
   <aside>
     <div class="ai-side"><div class="ai-side-icon">✳</div>
-      <h3>Tout est<br>modifiable.</h3>
-      <p>Filaments, objets, prix, réglages, ventes : demande-le en français.</p>
-      <b>ESSAIE PAR EXEMPLE</b>
-      ${AI_EXAMPLES.map(x => `<button onclick="aiExample(this)">${esc(x)}</button>`).join('')}
+      <h3>Il voit<br>tout l’atelier.</h3>
+      <p>Stock, coûts, marges, ventes, réglages : je croise tout et je te donne le chiffre juste.</p>
+      <b>CE QUE JE PEUX FAIRE</b>
+      ${AI_EXAMPLES.slice(0, 6).map(x => `<button onclick="aiExample(this)">${esc(x)}</button>`).join('')}
+      <b style="margin-top:18px">CONTEXTE</b>
+      <select id="ai_ctx" onchange="aiSetContext(this.value)"
+        style="width:100%;background:#11141b;border:1px solid #383e49;border-radius:9px;color:#e2e4e7;font-size:12px;padding:8px">
+        ${Object.entries(AI_CONTEXT_TABS).map(([k, v]) => `<option value="${k}" ${aiContext === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}
+      </select>
     </div>
-    <div class="ai-help"><b>Comment ça marche</b>
-      <p>Tu décris ce que tu veux, en une ou plusieurs actions. Je propose une liste détaillée ; tu confirmes pour appliquer, ou tu annules. Les suppressions demandent une confirmation supplémentaire.</p>
+    <div class="ai-help"><b>Diagnostic en direct</b>
+      <div class="ai-insights"><b>À TRAITER</b><ul style="margin:0;padding:0;list-style:none">
+        ${aiInsights().map(x => `<li>${esc(x)}</li>`).join('')}
+      </ul></div>
+      <p style="margin-top:12px">Je prépare les modifications, tu confirmes. Tu peux retirer une ligne avant de valider. Les suppressions demandent une seconde confirmation.</p>
     </div>
   </aside></div>`;
   paintAI();
+}
+
+function aiSetContext(v) { aiContext = v || 'auto'; render(); }
+
+/* Message enrichi : **gras**, `code`, sauts de ligne — sans HTML injecté. */
+function aiRich(t) {
+  return esc(t)
+    .replace(/\*\*([^*\n]{1,80})\*\*/g, '<b>$1</b>')
+    .replace(/`([^`\n]{1,60})`/g, '<code style="background:#0e131a;padding:1px 4px">$1</code>');
 }
 
 function paintAI() {
   const el = document.getElementById('ai-messages');
   if (!el) return;
   el.innerHTML = aiMessages.length
-    ? aiMessages.map(m => `<div class="bubble ${m.role === 'user' ? 'mine' : 'theirs'}"><span>${m.role === 'user' ? 'TOI' : '✦ ASSISTANT'}</span><p>${esc(m.text)}</p></div>`).join('')
-    : `<div class="ai-welcome"><div class="welcome-icon">✦</div><h3>Bonjour, qu’est-ce qu’on fait ?</h3><p>Ajoute dix bobines, crée des objets, change des prix… dis-le simplement.</p></div>`;
+    ? aiMessages.map((m, i) => `<div class="bubble ${m.role === 'user' ? 'mine' : 'theirs'}${m.warn ? ' warn' : ''}"><span>${m.role === 'user' ? 'TOI' : '✦ ASSISTANT'}</span><p>${aiRich(m.text)}</p>${
+      (m.tries && m.tries.length)
+        ? `<div class="ai-tries">${m.tries.map((t, j) => `<button class="ai-chip" onclick="aiTryAction(${i},${j})">↳ ${esc(t.label)}</button>`).join('')}</div>`
+        : ''}</div>`).join('')
+    : `<div class="ai-welcome"><div class="welcome-icon">✦</div><h3>Bonjour, qu’est-ce qu’on fait ?</h3><p>Dis-le en français : je prépare les changements, je calcule, je vérifie. Tu gardes la main.</p></div>`;
   if (aiBusy) el.innerHTML += '<div class="bubble theirs"><span>✦ ASSISTANT</span><p>Je réfléchis…</p></div>';
   el.scrollTop = el.scrollHeight;
+
+  const dot = document.getElementById('ai-status');
+  if (dot) {
+    dot.textContent = aiBusy ? '● RÉFLEXION' : (aiLastError ? '● HORS LIGNE' : '● EN LIGNE');
+    dot.classList.toggle('down', !!aiLastError);
+  }
 
   const box = document.getElementById('ai-proposal');
   if (!box) return;
@@ -2150,18 +2416,57 @@ function paintAI() {
   const A = aiPending.actions;
   box.innerHTML = `<div class="ai-confirm">
     <b>${A.length} modification${A.length > 1 ? 's' : ''} proposée${A.length > 1 ? 's' : ''}</b>
-    <ol style="margin:10px 0 14px;padding-left:20px;line-height:1.65;color:#e7f4d7;font-size:12.5px">
-      ${A.map(a => `<li>${esc(a.label)}</li>`).join('')}
-    </ol>
+    <div style="margin:8px 0 10px">
+      ${A.map((a, i) => `<div class="ai-prop-item"><span>${esc(a.label)}</span><button onclick="aiDrop(${i})" title="Retirer cette ligne">✕</button></div>`).join('')}
+    </div>
     <div><button class="btn primary" onclick="applyAI()">Confirmer et enregistrer</button>
     <button class="btn ghost" onclick="cancelAI()">Annuler</button></div>
   </div>`;
 }
 
+function aiDrop(i) {
+  if (!aiPending) return;
+  aiPending.actions.splice(i, 1);
+  if (!aiPending.actions.length) {
+    aiPending = null;
+    aiMessages.push({ role: 'assistant', text: 'Plus aucune modification à appliquer.' });
+  }
+  paintAI();
+}
+
+/* Une action que l'assistant a préparée d'avance : un clic la met en
+   proposition, l'utilisateur confirme ensuite comme d'habitude. */
+function aiTryAction(i, j) {
+  const m = aiMessages[i];
+  const t = m && m.tries && m.tries[j];
+  if (!t) return;
+  try {
+    const v = validateAI(t.action);
+    aiPending = { actions: [v] };
+    paintAI();
+    toast('Proposition prête : confirme pour appliquer');
+  } catch (e) {
+    aiMessages.push({ role: 'assistant', warn: true, text: '⚠ ' + e.message });
+    paintAI();
+  }
+}
+
 function aiExample(b) {
   const i = document.getElementById('ai-input');
+  if (!i) return;
   i.value = b.textContent;
   i.focus();
+}
+function aiNewChat() {
+  aiMessages = []; aiPending = null; aiSuggested = []; aiLastError = '';
+  render();
+  toast('Nouvelle conversation');
+}
+function aiCopy() {
+  const txt = aiMessages.map(m => (m.role === 'user' ? 'Toi : ' : 'Assistant : ') + m.text).join('\n\n');
+  if (!txt) return toast('Rien à copier');
+  if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => toast('Conversation copiée ✓'), () => toast('Copie impossible'));
+  else toast('Copie impossible');
 }
 function cancelAI() {
   aiPending = null;
@@ -2169,73 +2474,101 @@ function cancelAI() {
   paintAI();
 }
 
-/* ---------------------------------------------------------------- contexte */
-function aiState() {
-  /* on borne le contexte : au-delà, la requête dépasserait la taille max */
-  const MAXF = 80, MAXP = 80;
-  const fils = S.filaments.slice(0, MAXF).map(f => ({
-    id: f.id, nom: f.name, matiere: f.material, couleur: f.colorHex,
-    poids_bobine_g: f.spoolWeight, prix_bobine_eur: f.spoolPrice,
-    bobines_neuves: f.stockSpools || 0, restant_bobine_ouverte_g: f.remaining || 0
-  }));
-  const prods = S.products.slice(0, MAXP).map(p => {
-    const c = computeProduct(p);
-    return {
-      id: p.id, nom: p.name, filament_id: p.filamentId, poids_g: p.weightG,
-      heures: p.printHours, minutes: p.printMin, objets_par_plateau: p.qtyPerPlate,
-      finition_min: p.postMin, emballage_eur: p.packaging, coefficient: p.multiplier,
-      prix_manuel_eur: p.priceOverride, prix_calcule_eur: +c.price.toFixed(2),
-      prix_revient_eur: +c.costs.variable.toFixed(2), marge_pct: +c.marginPct.toFixed(1),
-      stock: p.stock, visible: p.active, sku: p.sku, description: p.description
-    };
-  });
-  return {
-    total_filaments: S.filaments.length, total_objets: S.products.length,
-    filaments: fils, objets: prods,
-    reglages: {
-      nom_atelier: S.settings.shopName, electricite_eur_kwh: S.settings.elecPricePerKwh,
-      puissance_w: S.settings.printerWatts, main_oeuvre_eur_h: S.settings.laborPerHour,
-      finition_min: S.settings.postProcessMin, taux_rate_pct: S.settings.failRatePct,
-      emballage_eur: S.settings.packagingCost, livraison_eur: S.settings.shippingCost,
-      commission_pct: S.settings.platformFeePct, frais_paiement_pct: S.settings.paymentFeePct,
-      marge_cible_pct: S.settings.targetMarginPct, tva_pct: S.settings.vatPct,
-      prix_ttc: S.settings.vatEnabled
-    },
-    nb_ventes: S.sales.length
-  };
-}
-
 /* ------------------------------------------------------------ validation */
-const AI_FIELDS = {
-  add_filament: { requis: ['name'], num: ['spoolWeight', 'spoolPrice', 'stockSpools', 'remaining'] },
-  add_filaments: { requete: true },
-  update_filament: { requete: ['id'] },
-  delete_filament: { requete: ['id'] },
-  add_product: { requise: ['name'], num: ['weightG', 'printHours', 'printMin', 'priceOverride', 'stock', 'qtyPerPlate', 'multiplier'] },
-  add_products: { requete: true },
-  update_product: { requete: ['id'] },
-  delete_product: { requete: ['id'] },
-  update_settings: { requete: [] },
-  delete_sales: { requete: ['id'] }
-};
-
-const nb = (v) => typeof v === 'number' && Number.isFinite(v) ? v : (typeof v === 'string' && v.trim() !== '' && Number.isFinite(+v) ? +v : null);
+const nb = (v) => typeof v === 'number' && Number.isFinite(v) ? v : (typeof v === 'string' && v.trim() !== '' && Number.isFinite(+v.replace(',', '.')) ? +v.replace(',', '.') : null);
 const hexOk = (v) => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
-const matOk = (v) => typeof v === 'string' && v.trim() ? v.trim() : null;
+const matOk = (v) => typeof v === 'string' && v.trim() ? v.trim().toUpperCase() : null;
+const AI_STATUS = ['À imprimer', 'En cours', 'Expédié', 'Livré', 'Annulé'];
+const AI_CHANNELS = ['Direct', 'Etsy', 'Vinted', 'Marketplace', 'Instagram', 'Boutique', 'Salon', 'Autre'];
 
 function findFil(id) { return S.filaments.find(f => f.id === id) || null; }
 function findProd(id) { return S.products.find(p => p.id === id) || null; }
+function findSale(id) { return S.sales.find(s => s.id === id) || null; }
 
-/* Normalise et vérifie une action. Lève une Error si inutilisable.
-   Renvoie { act, label } : une action propre + le texte montré à l'utilisateur. */
+/* Comparaison de noms tolérante : accents, casse, espaces, guillemets. */
+function aiNorm(s) {
+  return String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[’'`"]/g, '').replace(/\s+/g, ' ').trim();
+}
+function aiPick(list, name, id) {
+  if (id) { const byId = list.find(x => x.id === id); if (byId) return byId; }
+  if (!name) return null;
+  const n = aiNorm(name);
+  const exact = list.filter(x => aiNorm(x.name) === n);
+  if (exact.length === 1) return exact[0];
+  const loose = list.filter(x => aiNorm(x.name).includes(n) || n.includes(aiNorm(x.name)));
+  if (loose.length === 1) return loose[0];
+  if (loose.length > 1) throw Error(`plusieurs entrées correspondent à « ${name} » : précise laquelle`);
+  return null;
+}
+/* Un objet est désigné soit par son id (« id » ou « productId »), soit par un
+   nom. On accepte les deux pour rester tolérant au format renvoyé par le modèle. */
+function aiProd(a) {
+  const id = a.productId ?? a.id ?? null;
+  const name = a.productName || a.produit || a.nom || (id ? null : a.name) || null;
+  const p = aiPick(S.products, name, id);
+  if (!p) throw Error(`objet inconnu${name ? ' : « ' + name + ' »' : id ? ' (id ' + id + ')' : ''}`);
+  return p;
+}
+function aiFil(a) {
+  const id = a.filamentId ?? a.id ?? null;
+  const name = a.filamentName || a.nom || (id ? null : a.name) || null;
+  const f = aiPick(S.filaments, name, id);
+  if (!f) throw Error(`filament inconnu${name ? ' : « ' + name + ' »' : id ? ' (id ' + id + ')' : ''}`);
+  return f;
+}
+
+/* Prix pour viser une marge nette ou un coefficient sur le coût. */
+function aiPriceFor(p, opt) {
+  const c = computeProduct(p);
+  const st = S.settings;
+  const feePct = (Number(st.platformFeePct) + Number(st.paymentFeePct)) / 100;
+  const feeFixed = Number(st.paymentFeeFixed) || 0;
+  const base = c.costs.variable;
+  if (opt.multiplier != null) {
+    const m = Math.max(1, opt.multiplier);
+    return { price: Math.max(0, (base * m + feeFixed) / (1 - feePct)), multiplier: m, marginPct: null };
+  }
+  const target = Math.min(95, Math.max(1, opt.marginPct ?? st.targetMarginPct)) / 100;
+  /* La marge affichée par l'app est (bénéfice / net encaissé). On résout donc :
+     prix − frais fixes − frais% × prix = coût / (1 − marge)
+     ⇒ prix = (coût / (1 − marge) + fixe) / (1 − frais%) */
+  return { price: Math.max(0, (base / Math.max(0.05, 1 - target) + feeFixed) / Math.max(0.05, 1 - feePct)), multiplier: null, marginPct: target * 100 };
+}
+
+/* Suggestions prêtes à jouer, référençables par apply_suggestion. */
+function aiRuleSuggestions() {
+  const out = [];
+  const low = S.products.map(p => ({ p, c: computeProduct(p) })).filter(x => x.c.price > 0 && x.c.marginPct < 25);
+  if (low.length) {
+    out.push({
+      id: 'regle_prix', text: `Realigner les prix de ${low.length} objet(s) sous 25 % de marge sur la marge cible (${S.settings.targetMarginPct} %)`,
+      raw: { type: 'goal_price', marginPct: S.settings.targetMarginPct, scope: 'all' }
+    });
+  }
+  const old = S.sales.filter(s => (s.status === 'À imprimer' || s.status === 'En cours') && (Date.now() - new Date(s.date + 'T12:00:00').getTime()) > 7 * 864e5);
+  if (old.length) {
+    out.push({ id: 'regle_expedition', text: `Marquer « Expédié » ${old.length} vente(s) en attente depuis plus de 7 jours`, raw: { type: 'update_sale_status', status: 'Expédié', ids: old.map(s => s.id) } });
+  }
+  const noFil = S.products.filter(p => !p.filamentId);
+  if (noFil.length) {
+    out.push({ id: 'regle_filament', text: `${noFil.length} objet(s) sans filament associé : le coût matière vaut 0`, raw: null });
+  }
+  return out;
+}
+
+/* Mémoire courte : les actions brutes de la dernière réponse, rejouables. */
+let aiMemory = [];
+
 function validateAI(a) {
   if (!a || typeof a !== 'object' || typeof a.type !== 'string') throw Error('action non reconnue');
 
   switch (a.type) {
     /* ---------------------------------------------------------- filaments */
     case 'add_filament': {
-      const name = (a.name || '').toString().trim();
-      const sw = nb(a.spoolWeight), sp = nb(a.spoolPrice);
+      const name = (a.name || a.nom || '').toString().trim();
+      const sw = nb(a.spoolWeight) ?? nb(a.poids_bobine_g);
+      const sp = nb(a.spoolPrice) ?? nb(a.prix_bobine_eur);
       if (!name) throw Error('filament sans nom');
       if (sw === null || sw < 1) throw Error(`poids de bobine manquant pour « ${name} »`);
       if (sp === null || sp < 0) throw Error(`prix manquant pour « ${name} »`);
@@ -2244,60 +2577,61 @@ function validateAI(a) {
       const stock = nb(a.stockSpools) ?? 1;
       const remaining = nb(a.remaining) ?? 0;
       return {
-        act: { type: 'add_filament', name, material: mat, colorHex: hex, spoolWeight: sw, spoolPrice: sp, stockSpools: stock, remaining, brand: (a.brand || '').toString().slice(0, 60) },
-        label: `Ajouter « ${name} » — ${mat} ${hex}, bobine ${sw} g, ${sp} €, stock ${stock}`
+        act: { type: 'add_filament', name, material: mat, colorHex: hex, spoolWeight: sw, spoolPrice: sp, stockSpools: stock, remaining, brand: (a.brand || '').toString().slice(0, 60), flowGPerHour: nb(a.flowGPerHour) },
+        label: `Ajouter « ${name} » — ${mat} ${hex}, bobine ${sw} g à ${money(sp)}, stock ${stock}`
       };
     }
     case 'add_filaments': {
       if (!Array.isArray(a.items) || !a.items.length) throw Error('aucun filament dans la liste');
-      const items = a.items.slice(0, 40).map(it => {
-        const v = validateAI({ ...it, type: 'add_filament' });
-        return v.act;
-      });
-      const resume = items.slice(0, 6).map(i => `${i.name} (${i.stockSpools}×${i.spoolWeight} g, ${i.spoolPrice} €)`).join(', ');
+      const items = a.items.slice(0, 40).map(it => validateAI({ ...it, type: 'add_filament' }).act);
+      const resume = items.slice(0, 6).map(i => `${i.name} (${i.stockSpools}×${i.spoolWeight} g, ${money(i.spoolPrice)})`).join(', ');
       return { act: { type: 'add_filaments', items }, label: `Ajouter ${items.length} filaments : ${resume}${items.length > 6 ? '…' : ''}` };
     }
     case 'update_filament': {
-      const f = findFil(a.id);
-      if (!f) throw Error(`filament inconnu (id ${a.id})`);
+      const f = aiFil(a);
       const patch = {};
       if (a.name != null && String(a.name).trim()) patch.name = String(a.name).trim();
-      if (a.material != null) patch.material = String(a.material);
+      if (a.material != null) patch.material = String(a.material).toUpperCase();
       if (a.colorHex != null) { if (!hexOk(a.colorHex)) throw Error('couleur invalide'); patch.colorHex = a.colorHex.toLowerCase(); }
       if (a.brand != null) patch.brand = String(a.brand).slice(0, 60);
       if (a.note != null) patch.note = String(a.note).slice(0, 200);
-      for (const k of ['spoolWeight', 'spoolPrice', 'stockSpools', 'remaining']) {
+      for (const k of ['spoolWeight', 'spoolPrice', 'stockSpools', 'remaining', 'flowGPerHour']) {
         const v = nb(a[k]);
         if (v !== null) { if (v < 0) throw Error(`valeur négative pour ${k}`); patch[k] = v; }
       }
       if (!Object.keys(patch).length) throw Error('aucune modification indiquée');
-      const before = Object.entries(patch).map(([k, v]) => `${k}: ${f[k]} → ${v}`).join(', ');
+      const before = Object.entries(patch).map(([k, v]) => `${k}: ${f[k] ?? '—'} → ${v}`).join(', ');
       return { act: { type: 'update_filament', id: f.id, patch }, label: `Modifier « ${f.name} » — ${before}` };
     }
     case 'delete_filament': {
-      const f = findFil(a.id);
-      if (!f) throw Error(`filament inconnu (id ${a.id})`);
+      const f = aiFil(a);
       const used = S.products.filter(p => p.filamentId === f.id);
-      if (used.length) throw Error(`« ${f.name} » est utilisé par ${used.length} objet(s) : change-leur filament d’abord`);
+      if (used.length) throw Error(`« ${f.name} » est utilisé par ${used.length} objet(s) : change-leur filament d'abord`);
       return { act: { type: 'delete_filament', id: f.id }, label: `SUPPRIMER le filament « ${f.name} »` };
     }
 
     /* ------------------------------------------------------------- objets */
     case 'add_product': {
-      const name = (a.name || '').toString().trim();
+      const name = (a.name || a.nom || '').toString().trim();
       if (!name) throw Error('objet sans nom');
       const w = nb(a.weightG);
-      const h = nb(a.printHours) ?? 0;
-      const m = nb(a.printMin) ?? 0;
-      if (h <= 0 && m <= 0) throw Error(`temps d’impression manquant pour « ${name} »`);
-      /* sans poids, on estime depuis le temps : l'objet reste utilisable */
+      let h = nb(a.printHours) ?? 0;
+      let m = nb(a.printMin) ?? 0;
+      const total = nb(a.totalMinutes) ?? nb(a.duree_min);
+      if (total !== null && h <= 0 && m <= 0) { h = Math.floor(total / 60); m = Math.round(total % 60); }
+      if (h <= 0 && m <= 0) throw Error(`temps d'impression manquant pour « ${name} »`);
       const poidsEstime = (w === null || w <= 0);
-      let filId = a.filamentId;
-      if (filId && !findFil(filId)) throw Error(`filament inconnu (id ${filId})`);
+      let filId = a.filamentId || null;
+      if (filId && !findFil(filId)) {
+        const f = aiPick(S.filaments, a.filamentName, null);
+        if (!f) throw Error(`filament inconnu (id ${filId})`);
+        filId = f.id;
+      }
+      if (!filId && S.filaments.length === 1) filId = S.filaments[0].id;
       const price = nb(a.priceOverride);
       return {
         act: {
-          type: 'add_product', name, filamentId: filId || null, weightG: poidsEstime ? null : w,
+          type: 'add_product', name, filamentId: filId, weightG: poidsEstime ? null : w,
           printHours: h, printMin: m, qtyPerPlate: Math.max(1, nb(a.qtyPerPlate) ?? 1),
           postMin: nb(a.postMin), packaging: nb(a.packaging),
           multiplier: nb(a.multiplier) ?? 2.5,
@@ -2306,7 +2640,7 @@ function validateAI(a) {
           sku: (a.sku || '').toString().slice(0, 40),
           emoji: ICONS[a.emoji] ? a.emoji : 'cube', active: a.active === false ? false : true
         },
-        label: `Créer « ${name} » — ${poidsEstime ? 'poids estimé d’après le temps' : w + ' g'}, ${h} h ${m} min${price ? ', prix ' + price + ' €' : ', prix automatique'}`
+        label: `Créer « ${name} » — ${poidsEstime ? 'poids estimé d’après le temps' : w + ' g'}, ${hMin(h + m / 60)}${price ? ', prix ' + money(price) : ', prix automatique'}`
       };
     }
     case 'add_products': {
@@ -2318,15 +2652,16 @@ function validateAI(a) {
       };
     }
     case 'update_product': {
-      const p = findProd(a.id);
-      if (!p) throw Error(`objet inconnu (id ${a.id})`);
+      const p = aiProd(a);
       const patch = {};
-      if (a.name != null && String(a.name).trim()) patch.name = String(a.name).trim();
+      if (a.name != null && String(a.name).trim() && a.name !== p.name) patch.name = String(a.name).trim();
+      if (a.newname != null && String(a.newname).trim()) patch.name = String(a.newname).trim();
       if (a.description != null) patch.description = String(a.description).slice(0, 400);
       if (a.sku != null) patch.sku = String(a.sku).slice(0, 40);
-      if (a.filamentId !== undefined) {
-        if (a.filamentId && !findFil(a.filamentId)) throw Error('filament inconnu');
-        patch.filamentId = a.filamentId || null;
+      if (a.filamentId !== undefined || a.filamentName !== undefined) {
+        const f = aiPick(S.filaments, a.filamentName, a.filamentId);
+        if (a.filamentId && !f) throw Error('filament inconnu');
+        patch.filamentId = f ? f.id : null;
       }
       if (typeof a.active === 'boolean') patch.active = a.active;
       if (ICONS[a.emoji]) patch.emoji = a.emoji;
@@ -2339,13 +2674,13 @@ function validateAI(a) {
         else { const v = nb(a[k]); if (v !== null) patch[k] = v; }
       }
       if (!Object.keys(patch).length) throw Error('aucune modification indiquée');
-      const before = Object.entries(patch).map(([k, v]) => `${k}: ${p[k] ?? '—'} → ${v ?? '—'}`).join(', ');
+      const names = { weightG: 'poids', printHours: 'heures', printMin: 'minutes', qtyPerPlate: 'par plateau', multiplier: 'coefficient', stock: 'stock', priceOverride: 'prix', postMin: 'finition min', packaging: 'emballage', name: 'nom', active: 'visible' };
+      const before = Object.entries(patch).map(([k, v]) => `${names[k] || k}: ${p[k] ?? '—'} → ${v ?? '—'}`).join(', ');
       return { act: { type: 'update_product', id: p.id, patch }, label: `Modifier « ${p.name} » — ${before}` };
     }
     case 'delete_product': {
-      const p = findProd(a.id);
-      if (!p) throw Error(`objet inconnu (id ${a.id})`);
-      return { act: { type: 'delete_product', id: p.id }, label: `SUPPRIMER l’objet « ${p.name} »` };
+      const p = aiProd(a);
+      return { act: { type: 'delete_product', id: p.id }, label: `SUPPRIMER l'objet « ${p.name} »` };
     }
 
     /* ----------------------------------------------------------- réglages */
@@ -2355,11 +2690,11 @@ function validateAI(a) {
         printerPrice: 'num', printerLifeHours: 'num', maintenancePerHour: 'num', printerWatts: 'num',
         elecPricePerKwh: 'num', laborPerHour: 'num', postProcessMin: 'num', failRatePct: 'num',
         packagingCost: 'num', shippingCost: 'num', platformFeePct: 'num', paymentFeePct: 'num',
-        paymentFeeFixed: 'num', targetMarginPct: 'num', vatPct: 'num', flowGPerHour: 'num'
+        paymentFeeFixed: 'num', targetMarginPct: 'num', vatPct: 'num', flowGPerHour: 'num', flowMaxMm3s: 'num'
       };
       const patch = {};
       for (const [k, kind] of Object.entries(allowed)) {
-        if (a[k] === undefined || a[k] === null) continue;
+        if (a[k] === undefined || a[k] === null || a[k] === '') continue;
         if (kind === 'num') {
           const v = nb(a[k]);
           if (v === null || v < 0) throw Error(`valeur invalide pour ${k}`);
@@ -2376,6 +2711,54 @@ function validateAI(a) {
     }
 
     /* -------------------------------------------------------------- ventes */
+    case 'create_sale': {
+      const wanted = a.productName || a.nom || a.produit;
+      const p = aiPick(S.products, wanted, a.productId);
+      if (!p) throw Error(wanted ? `objet inconnu : « ${wanted} »` : 'objet de la vente introuvable');
+      const qty = Math.max(1, Math.round(nb(a.qty) ?? nb(a.quantite) ?? 1));
+      const cp = computeProduct(p);
+      const price = nb(a.unitPrice) ?? cp.price;
+      if (price === null || price < 0) throw Error('prix unitaire manquant pour la vente');
+      const ship = nb(a.shipping) ?? S.settings.shippingCost;
+      const shipCost = nb(a.shippingCost) ?? +(S.settings.shippingCost * 0.6).toFixed(2);
+      const days = Math.max(0, Math.round(nb(a.daysAgo) ?? 0));
+      const date = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
+      const channel = AI_CHANNELS.find(x => aiNorm(x) === aiNorm(a.channel || 'Direct')) || 'Direct';
+      const status = AI_STATUS.find(x => aiNorm(x) === aiNorm(a.status || 'Livré')) || 'Livré';
+      const gross = price * qty + ship;
+      const fees = price * qty * ((S.settings.platformFeePct + S.settings.paymentFeePct) / 100) + S.settings.paymentFeeFixed;
+      const cost = (cp ? cp.costs.variable : 0) * qty + shipCost;
+      return {
+        act: {
+          type: 'create_sale', productId: p.id, productName: p.name,
+          qty, unitPrice: price, shipping: ship, shippingCost: shipCost, date,
+          customer: (a.customer || a.client || '').toString().slice(0, 80),
+          channel, status, note: (a.note || '').toString().slice(0, 200),
+          snapshot: { variable: cp.costs.variable, filament: cp.costs.filament, elec: cp.costs.elecWithFail, wear: cp.costs.wear, labor: cp.costs.labor, packaging: cp.costs.packaging }
+        },
+        label: `Enregistrer une vente — ${qty} × « ${p.name} » à ${money(price)}, port ${money(ship)}, ${channel}, ${status}${(a.customer || a.client) ? ', client ' + (a.customer || a.client) : ''} (bénéfice estimé ${money(gross - fees - cost)})`
+      };
+    }
+    case 'update_sale_status': {
+      const status = AI_STATUS.find(x => aiNorm(x) === aiNorm(a.status));
+      if (!status) throw Error('statut de vente inconnu');
+      let found = [];
+      if (Array.isArray(a.ids) && a.ids.length) found = a.ids.map(findSale).filter(Boolean);
+      else if (a.produit || a.productName) {
+        const name = aiNorm(a.produit || a.productName);
+        const graded = S.sales.map(s => {
+          const n = aiNorm(s.productName);
+          const score = n === name ? 3 : (n.startsWith(name) || name.startsWith(n) ? 2 : (n.includes(name) || name.includes(n) ? 1 : 0));
+          return { s, score };
+        }).filter(x => x.score > 0);
+        found = graded.sort((x, y) => y.score - x.score || (y.s.date || '').localeCompare(x.s.date || '')).slice(0, 1).map(x => x.s);
+      }
+      if (!found.length) throw Error('vente introuvable');
+      return {
+        act: { type: 'update_sale_status', ids: found.map(s => s.id), status },
+        label: `Passer ${found.length} vente(s) en « ${status} » — ${found.slice(0, 4).map(s => `${s.productName} (${frDate(s.date)})`).join(', ')}`
+      };
+    }
     case 'delete_sales': {
       const ids = Array.isArray(a.ids) ? a.ids : (a.id ? [a.id] : []);
       const found = ids.map(findSale).filter(Boolean);
@@ -2386,27 +2769,101 @@ function validateAI(a) {
       };
     }
 
+    /* ----------------------------------------------------- approvisionnement */
+    case 'add_stock': {
+      const items = [];
+      const spools = nb(a.spools);
+      const grams = nb(a.amountG) ?? nb(a.poids_g);
+      const f = (a.filamentId || a.filamentName) ? aiFil(a) : (S.filaments.length === 1 ? S.filaments[0] : null);
+      if ((spools !== null || grams !== null) && f) {
+        const patch = {};
+        if (spools !== null && spools > 0) patch.stockSpools = (Number(f.stockSpools) || 0) + Math.round(spools);
+        if (grams !== null && grams > 0) {
+          /* on remplit la bobine ouverte, le reste part en bobines neuves */
+          const cap = Number(f.spoolWeight) || 1000;
+          const cur = Math.min(Number(f.remaining) || 0, cap);
+          const fill = Math.min(cap - cur, grams);
+          const rest = grams - fill;
+          patch.remaining = +(cur + fill).toFixed(1);
+          if (rest > 0) patch.stockSpools = (patch.stockSpools ?? (Number(f.stockSpools) || 0)) + rest / cap;
+        }
+        items.push({ type: 'update_filament', id: f.id, patch });
+      }
+      const prod = (a.productId || a.productName) ? aiProd(a) : null;
+      const qty = nb(a.qty) ?? nb(a.quantity);
+      if (prod && qty !== null && qty !== 0) items.push({ type: 'update_product', id: prod.id, patch: { stock: Math.max(0, (Number(prod.stock) || 0) + Math.round(qty)) } });
+      if (!items.length) throw Error('rien à réapprovisionner : précise un filament ou un objet et une quantité');
+      return {
+        act: { type: 'add_stock', items },
+        label: `Réapprovisionner — ${f ? `${spools ? spools + ' bobine(s) ' : ''}${grams ? grams + ' g ' : ''}de « ${f.name} »` : ''}${prod ? ` · stock de « ${prod.name} » ${qty > 0 ? '+' : ''}${qty}` : ''}`
+      };
+    }
+
+    /* ------------------------------------------------------------- le reste */
+    case 'goal_price': {
+      const opt = { marginPct: nb(a.marginPct), multiplier: nb(a.multiplier) };
+      if (opt.marginPct === null && opt.multiplier === null) throw Error('ni marge ni coefficient fournis');
+      const scope = (a.scope || (a.productId || a.productName ? 'product' : 'all')).toLowerCase();
+      const targets = scope === 'product' ? [aiProd(a)] : S.products.slice();
+      if (!targets.length) throw Error('aucun objet à modifier');
+      const items = targets.map(p => {
+        const r = aiPriceFor(p, opt);
+        return { id: p.id, name: p.name, from: +computeProduct(p).price.toFixed(2), priceOverride: +r.price.toFixed(2) };
+      });
+      const head = opt.multiplier != null ? `coefficient ${opt.multiplier}` : `marge nette ${opt.marginPct ?? S.settings.targetMarginPct} %`;
+      return {
+        act: { type: 'goal_price', items },
+        label: `Fixer les prix de ${items.length} objet(s) pour ${head} — ${items.slice(0, 3).map(i => `« ${i.name} » ${money(i.from)} → ${money(i.priceOverride)}`).join(', ')}${items.length > 3 ? '…' : ''}`
+      };
+    }
+    case 'apply_suggestion': {
+      const id = String(a.id || '');
+      const known = [...aiRuleSuggestions(), ...aiMemory.map(m => ({ id: m.id, text: m.text, raw: m.raw }))]
+        .find(s => s.id === id || aiNorm(s.id) === aiNorm(id));
+      if (!known || !known.raw) throw Error(`suggestion inconnue ou obsolète (${id})`);
+      const v = validateAI(known.raw);
+      return { act: v.act, label: `↻ ${v.label}` };
+    }
+    case 'run_migration': {
+      const values = a.values || a.settings || {};
+      const v = validateAI({ type: 'update_settings', ...values });
+      return { act: v.act, label: `Machine / réglages — ${v.label.replace(/^Modifier les réglages — /, '')}` };
+    }
+    case 'delete_all': {
+      const scope = String(a.scope || '').toLowerCase();
+      const map = { produits: 'products', products: 'products', objets: 'products', filaments: 'filaments', ventes: 'sales', sales: 'sales' };
+      const s = map[scope];
+      if (!s) throw Error('portée de suppression invalide');
+      const n = S[s].length;
+      if (!n) throw Error('rien à supprimer');
+      return { act: { type: 'delete_all', scope: s }, label: `SUPPRIMER TOUT (${n} entrée(s) dans ${s})` };
+    }
+
     default:
       throw Error('action non prise en charge : ' + a.type);
   }
 }
-
-function findSale(id) { return S.sales.find(s => s.id === id) || null; }
 
 /* ------------------------------------------------------------ exécution */
 function applyAIActions(actions) {
   const done = [];
   for (const a of actions) {
     switch (a.type) {
-      case 'add_filament':
-        S.filaments.push({ id: uid(), brand: '', note: '', ...a });
-        done.push(a.name);
+      case 'add_filament': {
+        const f = { id: uid(), brand: '', note: '', remaining: 0, ...a };
+        if (f.flowGPerHour === null) delete f.flowGPerHour;
+        S.filaments.push(f); done.push(f.name);
         break;
+      }
       case 'add_filaments':
-        a.items.forEach(i => { S.filaments.push({ id: uid(), brand: '', note: '', ...i }); done.push(i.name); });
+        a.items.forEach(i => {
+          const f = { id: uid(), brand: '', note: '', remaining: 0, ...i };
+          if (f.flowGPerHour === null) delete f.flowGPerHour;
+          S.filaments.push(f); done.push(f.name);
+        });
         break;
       case 'update_filament':
-        Object.assign(findFil(a.id), a.patch); done.push('filament');
+        Object.assign(findFil(a.id), a.patch); done.push('filament modifié');
         break;
       case 'delete_filament':
         S.filaments = S.filaments.filter(f => f.id !== a.id); done.push('filament supprimé');
@@ -2437,18 +2894,50 @@ function applyAIActions(actions) {
       case 'delete_sales':
         S.sales = S.sales.filter(s => !a.ids.includes(s.id)); done.push(a.ids.length + ' vente(s) supprimée(s)');
         break;
+      case 'update_sale_status':
+        S.sales.forEach(s => { if (a.ids.includes(s.id)) s.status = a.status; });
+        done.push(a.ids.length + ' vente(s) → ' + a.status);
+        break;
+      case 'create_sale': {
+        S.sales.push({
+          id: uid(), date: a.date || todayISO(), productId: a.productId, productName: a.productName,
+          qty: a.qty, unitPrice: a.unitPrice, shipping: a.shipping, shippingCost: a.shippingCost,
+          customer: a.customer || '', channel: a.channel || 'Direct', status: a.status || 'Livré',
+          note: a.note || '', costSnapshot: a.snapshot || { variable: 0 }
+        });
+        const p = a.productId ? findProd(a.productId) : null;
+        if (p && Number(p.stock) > 0) p.stock = Math.max(0, Number(p.stock) - a.qty);
+        done.push('vente enregistrée');
+        break;
+      }
+      case 'add_stock':
+        a.items.forEach(it => applyAIActions([it]));
+        done.push('réapprovisionnement');
+        break;
+      case 'goal_price': {
+        /* on ne touche qu'aux prix : le coefficient reste intouché pour ne pas
+           recalculer un prix déjà décidé */
+        a.items.forEach(it => { const p = findProd(it.id); if (p) p.priceOverride = it.priceOverride; });
+        done.push(a.items.length + ' prix ajusté(s)');
+        break;
+      }
+      case 'delete_all':
+        S[a.scope] = []; done.push('tout ' + a.scope + ' supprimé');
+        break;
     }
   }
   return done;
 }
 
+/* Un état de secours avant chaque application : « Annuler » reste possible
+   même après confirmation (le bouton ne s'affiche que s'il y a de quoi). */
+let aiUndoState = null;
+
 function applyAI() {
   if (!aiPending) return;
-  /* aiPending.actions contient des enveloppes { act, label } : le type est
-     dans a.act.type. (Avant, a.type était undefined → exception silencieuse
-     et le bouton Confirmer ne faisait rien.) */
-  const destructive = aiPending.actions.filter(a => a.act && String(a.act.type).startsWith('delete_'));
+  const destructive = aiPending.actions.filter(a => a.act && /^delete_/.test(String(a.act.type)));
   if (destructive.length && !confirm(`Cette action supprime définitivement :\n\n${destructive.map(a => '• ' + a.label).join('\n')}\n\nContinuer ?`)) return;
+  const before = JSON.stringify(S);
   let done;
   try {
     done = applyAIActions(aiPending.actions.map(a => a.act));
@@ -2458,93 +2947,123 @@ function applyAI() {
     aiPending = null; render(); paintAI();
     return toast('⚠️ ' + e.message);
   }
-  save();
+  aiUndoState = before;
   aiPending = null;
-  aiMessages.push({ role: 'assistant', text: `C’est fait : ${done.length} changement(s) enregistré(s).` });
-  render();
+  aiMessages.push({ role: 'assistant', text: `C’est fait : ${done.length} changement(s) enregistré(s). Dis « annule » si ce n’est pas ce que tu voulais.` });
+  save(); render(); aiPersist();
   toast('Modifications enregistrées ✓');
   paintAI();
 }
 
-const AI_REMOTE = 'https://imprimante-3d.vercel.app/api/chat';
-
-async function aiFetch(messages) {
-  const body = JSON.stringify({ messages });
-  const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body };
-  let first;
-  try { first = await fetch('/api/chat', opts); }
-  catch (e) { return fetch(AI_REMOTE, opts); }
-  if (first.status !== 500 && first.status !== 404) return first;
+function aiUndo() {
+  if (!aiUndoState) return toast('Rien à annuler');
   try {
-    const second = await fetch(AI_REMOTE, opts);
-    if (second.ok) return second;
-  } catch (e) {}
-  return first;
+    const d = JSON.parse(aiUndoState);
+    S = { ...DEFAULTS(), ...d, settings: { ...DEFAULTS().settings, ...(d.settings || {}) } };
+    aiUndoState = null;
+    save(); render();
+    aiMessages.push({ role: 'assistant', text: 'Annulé : l’atelier est revenu à l’état d’avant la dernière modification.' });
+    paintAI();
+    toast('Modification annulée ✓');
+  } catch (e) { toast('Annulation impossible'); }
 }
 
-function aiSystemPrompt() {
-  return `Tu es l'assistant agent d'un atelier d'impression 3D. Tu réponds TOUJOURS en JSON valide, sans texte autour.
+/* La conversation survit à un rafraîchissement (sessionStorage) : on ne perd
+   ni le fil ni les questions de suivi. */
+function aiPersist() {
+  try {
+    sessionStorage.setItem('printprofit_ai', JSON.stringify({
+      messages: aiMessages.slice(-20).map(m => ({ role: m.role, text: m.text, warn: !!m.warn })),
+      suggested: aiSuggested.slice(0, 3)
+    }));
+  } catch (e) {}
+}
+function aiRestore() {
+  try {
+    const d = JSON.parse(sessionStorage.getItem('printprofit_ai') || 'null');
+    if (d && Array.isArray(d.messages)) {
+      aiMessages = d.messages.filter(m => m && m.role && typeof m.text === 'string');
+      aiSuggested = Array.isArray(d.suggested) ? d.suggested.slice(0, 3) : [];
+    }
+  } catch (e) {}
+}
 
-Format exact :
-{"message":"réponse courte en français","actions":[]}
+const AI_REMOTE = 'https://imprimante-3d.vercel.app/api/chat';
 
-"actions" est une LISTE (0 à 20 éléments). Chaque élément a un "type" :
+/* Un seul POST, avec coupure de sécurité : l'utilisateur ne reste jamais
+   bloqué sur « Je réfléchis… ». */
+async function aiPost(messages) {
+  const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages }) };
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), 65000) : null;
+  const send = (url) => fetch(url, ctrl ? { ...opts, signal: ctrl.signal } : opts);
+  try {
+    let res;
+    try { res = await send('/api/chat'); }
+    catch (e) { res = await send(AI_REMOTE); }        /* aperçu local sans fonction serverless */
+    if (res.status === 500 || res.status === 404) {
+      try { const alt = await send(AI_REMOTE); if (alt.ok) res = alt; } catch (e) {}
+    }
+    return res;
+  } finally { if (timer) clearTimeout(timer); }
+}
 
-1. {"type":"add_filament","name":str,"material":str,"colorHex":"#rrggbb","spoolWeight":nb,"spoolPrice":nb,"stockSpools":nb,"remaining":nb,"brand":str}
-2. {"type":"add_filaments","items":[ ...plusieurs add_filament... ]}  ← pour "ajoute 10 bobines" ou plusieurs couleurs
-3. {"type":"update_filament","id":str,"name":str?,"material":str?,"colorHex":str?,"spoolWeight":nb?,"spoolPrice":nb?,"stockSpools":nb?,"remaining":nb?,"brand":str?}
-4. {"type":"delete_filament","id":str}
-5. {"type":"add_product","name":str,"filamentId":str,"weightG":nb,"printHours":nb,"printMin":nb,"qtyPerPlate":nb,"postMin":nb,"packaging":nb,"multiplier":nb,"priceOverride":nb,"stock":nb,"description":str,"emoji":str}
-6. {"type":"add_products","items":[ ...plusieurs add_product... ]}
-7. {"type":"update_product","id":str, ...champs à changer...}
-8. {"type":"delete_product","id":str}
-9. {"type":"update_settings","elecPricePerKwh":nb?,"laborPerHour":nb?,"failRatePct":nb?,"printerWatts":nb?,"packagingCost":nb?,"shippingCost":nb?,"platformFeePct":nb?,"paymentFeePct":nb?,"paymentFeeFixed":nb?,"targetMarginPct":nb?,"vatPct":nb?,"vatEnabled":bool?,"includeLabor":bool?,"includeWear":bool?,"includePackaging":bool?,"flowGPerHour":nb?,"shopName":str?,"printerName":str?}
-10. {"type":"delete_sales","ids":[str,...]}
+/* Extrait le JSON même si le modèle l'a entouré de texte ou de balises ```. */
+function aiParse(text) {
+  const s = String(text || '').trim();
+  const tries = [s];
+  const fenced = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced) tries.push(fenced[1].trim());
+  const first = s.indexOf('{'), last = s.lastIndexOf('}');
+  if (first >= 0 && last > first) tries.push(s.slice(first, last + 1));
+  for (const t of tries) { try { const o = JSON.parse(t); if (o && typeof o === 'object') return o; } catch (e) {} }
+  throw Error('réponse illisible de l’assistant');
+}
 
-RÈGLES IMPORTANTES
-- Utilise EXACTEMENT les ids présents dans l'état fourni. N'invente jamais d'id.
-- Tu peux enchaîner plusieurs actions dans la même réponse (ex. créer 10 filaments + 3 objets).
-- Pour "ajoute 10 bobines de PLA noir", écris add_filaments avec 10 éléments, ou un seul élément avec "stockSpools":10 — préfère stockSpools pour ne pas dépasser 20 actions.
-- Couleurs : code hexadécimal réaliste (noir #111827, blanc #ffffff, rouge #ef4444, bleu #3b82f6, vert #22c55e, gris #9ca3af, or #fbbf24, transparent/naturel #e5e7eb).
-- Matières : PLA, PLA+, PETG, ABS, ASA, TPU, Nylon, PC, PVA.
-- Si une info indispensable manque (poids, temps, prix d'un objet), pose UNE question dans "message" et renvoie "actions":[].
-- Le poids d'un objet est FACULTATIF : sans poids, l'app l'estime depuis le temps d'impression et le débit matière. Si l'utilisateur ne donne que le temps, crée l'objet sans weightG.
-- En revanche, n'invente jamais un temps d'impression : s'il manque, demande-le.
-- Le débit matière par défaut est de ${S.settings.flowGPerHour} g/h ; tu peux le changer avec update_settings (flowGPerHour).
-- Pour une question d'analyse (marges, stock), "actions":[] et réponds dans "message" avec des chiffres issus de l'état.
-- Ne dis jamais que c'est déjà fait : les actions seront proposées puis confirmées.
-- Les nombres sont des nombres JSON, pas des chaînes.
-- "emoji" : une clé parmi ${Object.keys(ICONS).filter(k => k !== 'cart').join(', ')} — sinon "cube".
-
-État réel de l'atelier :
-${JSON.stringify(aiState())}`;
+/* Erreurs réseau : une phrase claire + ce qu'il faut faire. */
+function aiErrorText(err, status) {
+  const m = String(err && err.message || err || '');
+  if (status === 429) return 'Trop de demandes en peu de temps (limite de l’assistant). Attends une minute, puis réessaie.';
+  if (status === 400 && /conversation/i.test(m)) return 'La conversation est devenue trop longue. Clique sur « ↺ Nouveau », je repars avec un contexte propre.';
+  if (status === 400) return 'L’assistant n’est pas configuré sur ce serveur (' + m + ').';
+  if (status === 502 || status === 504) return 'L’assistant a mis trop de temps ou a refusé la demande. Réessaie dans quelques secondes.';
+  if (/abort|AbortError/i.test(m)) return 'Délai dépassé : la réponse n’est pas revenue à temps. Réessaie.';
+  if (/fetch|network|Failed/i.test(m)) return 'Impossible de joindre l’assistant (réseau). Vérifie ta connexion, puis réessaie.';
+  return m || 'erreur inconnue';
 }
 
 async function sendAI(e) {
-  e.preventDefault();
+  if (e && typeof e.preventDefault === 'function') e.preventDefault();
   if (aiBusy) return;
-  if (aiPending) { toast('Confirme ou annule d’abord la proposition en cours.'); return; }
   const input = document.getElementById('ai-input');
-  const text = input.value.trim();
+  const text = (input && input.value || '').trim();
   if (!text) return;
-  input.value = '';
+  /* « annule » après coup : on restaure l'état précédent au lieu d'appeler l'IA */
+  if (/^(annule|annuler|undo|reviens en arrière|remets comme avant)\b/i.test(text) && aiUndoState) {
+    if (input) input.value = '';
+    aiMessages.push({ role: 'user', text });
+    return aiUndo();
+  }
+  if (aiPending) { toast('Confirme ou annule d’abord la proposition en cours.'); return; }
+  if (input) input.value = '';
   aiMessages.push({ role: 'user', text });
   aiBusy = true;
   const btn = document.getElementById('ai-send');
   if (btn) btn.disabled = true;
   paintAI();
 
+  let status = 0;
   try {
     const messages = [
       { role: 'system', content: aiSystemPrompt() },
-      ...aiMessages.slice(-10).map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }))
+      ...aiMessages.filter(m => !m.warn).slice(-8).map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }))
     ];
-    const res = await aiFetch(messages);
-    const data = await res.json();
+    const res = await aiPost(messages);
+    status = res.status;
+    let data = {};
+    try { data = await res.json(); } catch (e) { data = {}; }
     if (!res.ok) throw Error(data.error || 'Erreur de connexion');
-    let out;
-    try { out = JSON.parse(data.content); }
-    catch (e) { throw Error('réponse illisible de l’assistant'); }
+    const out = aiParse(data.content);
 
     const raw = Array.isArray(out.actions) ? out.actions
       : (out.action ? [out.action] : []);
@@ -2557,16 +3076,30 @@ async function sendAI(e) {
 
     let msg = String(out.message || '').trim();
     if (!valid.length && !msg) msg = 'Je n’ai pas compris la demande. Reformule-la ?';
-    if (errors.length) msg += (msg ? '\n\n' : '') + 'Certaines actions ont été ignorées : ' + errors.join(' ; ');
+    if (errors.length) msg += (msg ? '\n\n' : '') + 'Écarté : ' + errors.slice(0, 4).join(' ; ');
     aiMessages.push({ role: 'assistant', text: msg || 'Prêt.' });
     if (valid.length) aiPending = { actions: valid };
+    aiSuggested = (Array.isArray(out.suggestions) ? out.suggestions : [])
+      .map(s => String(s || '').trim()).filter(Boolean).slice(0, 3);
+    /* actions prêtes à cliquer, et mémoire pour « applique la proposition 2 » */
+    const tries = (Array.isArray(out.suggestions_actions) ? out.suggestions_actions : (Array.isArray(out.try) ? out.try : []))
+      .filter(t => t && t.action && typeof t.action === 'object')
+      .map(t => ({ label: String(t.label || t.action.type || 'Appliquer').slice(0, 70), action: t.action }))
+      .slice(0, 3);
+    if (tries.length) aiMessages[aiMessages.length - 1].tries = tries;
+    aiMemory = tries.map((t, i) => ({ id: 'prop' + (i + 1), text: t.label, raw: t.action }));
+    aiLastError = '';
+    aiPersist();
   } catch (err) {
-    aiMessages.push({ role: 'assistant', text: 'Impossible de répondre : ' + err.message + '.' });
+    aiPersist();
+    console.error('sendAI', err);
+    aiLastError = aiErrorText(err, status);
+    aiMessages.push({ role: 'assistant', warn: true, text: '⚠ ' + aiLastError });
   } finally {
     aiBusy = false;
     const b = document.getElementById('ai-send');
     if (b) b.disabled = false;
-    paintAI();
+    render();
   }
 }
 
@@ -2584,6 +3117,7 @@ function render() {
 
 /* ---------------- DÉMARRAGE ---------------- */
 load();
+aiRestore();
 render();
 
 // raccourcis clavier
