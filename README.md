@@ -47,7 +47,7 @@ Sans clé, le reste de l'application fonctionne normalement.
 
 | Onglet | Contenu |
 |---|---|
-| Assistant IA | proposition d'objets / prix, appliquée après confirmation |
+| Assistant IA | agent multi-actions, contexte de l'écran, diagnostic live, confirmation ligne par ligne, annulation |
 | Tableau de bord | KPI, stock bas, ventes récentes, graphiques |
 | Simulateur | coût matière + énergie + usure machine + main-d'œuvre, prix conseillé |
 | Filaments | bobines, prix au gramme, stock restant |
@@ -62,8 +62,36 @@ Sans clé, le reste de l'application fonctionne normalement.
 - `index.html` — l'application complète (UI + logique, un seul fichier)
 - `server.py` — serveur local : statique + proxy `/api/chat`
 - `api/chat.mjs` — même proxy en fonction serverless Vercel
-- Les deux proxys appliquent la même limite (12 requêtes/minute par IP) et la
-  même validation des entrées ; ils ne relaient jamais le corps d'erreur de Groq.
+- Les deux proxys appliquent la même validation des entrées (30 requêtes/minute
+  par IP, 20 messages max) et ne relaient jamais le corps d'erreur de Groq.
+- `api/chat.mjs` choisit le modèle : `openai/gpt-oss-20b` pour une question
+  courte, `openai/gpt-oss-120b` dès qu'il y a une action à produire. Une réponse
+  JSON tronquée est réparée côté serveur (`repairJson`) avant d'arriver au client.
+
+## Assistant IA — ce qu'il sait faire
+
+- **Filaments** : ajouter (une ou plusieurs bobines), modifier, supprimer.
+- **Objets** : créer (le poids est facultatif, il est estimé depuis la durée),
+  modifier, supprimer, réapprovisionner le stock.
+- **Prix** : viser une marge nette (`goal_price` avec `marginPct`) ou un
+  coefficient sur le coût (`multiplier`), sur un objet ou tout le catalogue.
+- **Ventes** : enregistrer une vente (par nom d'objet, la casse et les accents
+  ne comptent pas), changer un statut, supprimer.
+- **Réglages** : machine, électricité, débit matière, frais de vente, TVA,
+  postes de coût optionnels (`includeLabor`, `includeWear`, `includePackaging`).
+- **Analyse** : totaux, marges, stock, objets sous-margés, ventes à expédier —
+  il répond avec les chiffres réels de l'état transmis.
+- **Garde-fous** : les ids sont vérifiés, une suppression exige une seconde
+  confirmation, une ligne de la proposition peut être retirée avant validation,
+  et l'action confirmée reste annulable (dis « annule »).
+
+Tests hors ligne (aucun appel réseau, aucune clé requise) :
+
+```bash
+node .arena/test_agent.js && node .arena/test_agent2.js && node .arena/test_confirm.js
+node .arena/test_chat.js && node .arena/test_poids.js && node .arena/test_couts.js
+node .arena/test_api.mjs
+```
 - `.gitignore` — exclut la clé API et les artefacts Python
 
 ## Notes

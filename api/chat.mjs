@@ -2,8 +2,48 @@
    Réplique server.py : relais vers l'API Groq, limite de débit, validation. */
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const LIMIT = 12;          // requêtes max...
+const LIMIT = 30;          // requêtes max...
 const WINDOW_MS = 60_000;  // ...par IP et par minute
+
+/* Le modèle fort est utilisé pour les demandes qui touchent aux données ; le
+   modèle rapide suffit pour une question courte (et il répond plus vite). */
+const MODEL_SMART = 'openai/gpt-oss-120b';
+const MODEL_FAST = 'openai/gpt-oss-20b';
+
+/* Réparation d'un JSON tronqué : on coupe au dernier objet complet et on
+   ferme les crochets. Sans cela, un max_tokens atteint perd toute la réponse. */
+function repairJson(raw) {
+  const s = String(raw || '').trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+  try { return JSON.parse(s); } catch {}
+  const a = s.indexOf('{');
+  if (a < 0) return null;
+  const body = s.slice(a);
+  /* on essaie de fermer progressivement en retirant la fin */
+  for (let cut = body.length; cut > 1; cut--) {
+    const head = body.slice(0, cut).replace(/[,:\s]+$/, '');
+    const opens = [];
+    let inStr = false, esc2 = false, ok = true;
+    for (let i = 0; i < head.length; i++) {
+      const ch = head[i];
+      if (inStr) {
+        if (esc2) esc2 = false;
+        else if (ch === '\\') esc2 = true;
+        else if (ch === '"') inStr = false;
+        continue;
+      }
+      if (ch === '"') inStr = true;
+      else if (ch === '{' || ch === '[') opens.push(ch);
+      else if (ch === '}' || ch === ']') {
+        const need = ch === '}' ? '{' : '[';
+        if (opens.pop() !== need) { ok = false; break; }
+      }
+    }
+    if (!ok || inStr) continue;
+    const closed = head + opens.reverse().map(o => (o === '{' ? '}' : ']')).join('');
+    try { const o = JSON.parse(closed); if (o && typeof o === 'object') return o; } catch {}
+  }
+  return null;
+}
 const MAX_BODY = 60_000;   // octets
 const MAX_MESSAGES = 20;
 
@@ -44,7 +84,8 @@ export default async function handler(req, res) {
       ok: true,
       configured: Boolean(process.env.GROQ_API_KEY),
       key_length: (process.env.GROQ_API_KEY || '').length,
-      model: 'openai/gpt-oss-120b',
+      model: MODEL_SMART,
+      models: [MODEL_SMART, MODEL_FAST],
       runtime: process.version,
     });
   }
@@ -93,12 +134,21 @@ export default async function handler(req, res) {
     clean.push({ role: m.role, content: m.content.slice(0, 20_000) });
   }
 
+  /* Le petit modèle suffit pour une question courte ; toute demande qui
+     ressemble à une action (verbe à l'impératif, chiffres, ids) part sur le
+     gros modèle, plus fiable pour produire un JSON complet. */
+  const lastUser = [...clean].reverse().find((m) => m.role === 'user')?.content || '';
+  const questionOnly = lastUser.length < 60 &&
+    /^(quoi|combien|pourquoi|quel|quelle|quels|quelles|qui|ou est|où est|est-ce|comment|ca vaut|ça vaut|analyse|un point|resume|résume)/i.test(lastUser) &&
+    !/(ajoute|crée|cree|creer|créer|supprime|modifie|change|mets|met |passe|fixe|enregistre|corrige|supprimer|appliquer|applique)/i.test(lastUser);
+  const model = body.model === 'fast' || (questionOnly && body.force !== 'smart') ? MODEL_FAST : MODEL_SMART;
+
   const payload = JSON.stringify({
-    model: 'openai/gpt-oss-120b',
+    model,
     messages: clean,
     temperature: 0.2,
     reasoning_effort: 'low',
-    max_tokens: 1600,
+    max_tokens: 2400,
     response_format: { type: 'json_object' },
   });
 
@@ -128,11 +178,20 @@ export default async function handler(req, res) {
     }
 
     const result = await r.json();
-    const content = result?.choices?.[0]?.message?.content;
-    if (typeof content !== 'string') {
+    let content = result?.choices?.[0]?.message?.content;
+    if (typeof content !== 'string' || !content.trim()) {
       return res.status(502).json({ error: 'Réponse inattendue de l’assistant.' });
     }
-    return res.status(200).json({ content });
+    /* Le JSON est réparé côté serveur : le client reçoit toujours du JSON
+       exploitable, même si la réponse a été coupée par la limite de tokens. */
+    content = content.trim();
+    if (!content.startsWith('{')) {
+      const parsed = repairJson(content);
+      if (parsed) content = JSON.stringify(parsed);
+    } else {
+      try { JSON.parse(content); } catch { const parsed = repairJson(content); if (parsed) content = JSON.stringify(parsed); }
+    }
+    return res.status(200).json({ content, model });
   } catch (err) {
     const aborted = err && err.name === 'AbortError';
     return res.status(aborted ? 504 : 500).json({
