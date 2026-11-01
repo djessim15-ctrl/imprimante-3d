@@ -4,13 +4,33 @@ Application web pour piloter un atelier d'impression 3D : coûts de revient rée
 catalogue d'objets, boutique, ventes et rentabilité. Interface en français,
 100 % côté navigateur (données en `localStorage`), plus un assistant IA optionnel.
 
-## Lancer
+## En ligne
+
+Production : **https://printprofit-eight.vercel.app**
+
+## Lancer en local
 
 ```bash
 python3 server.py            # http://localhost:3000  (variable PORT pour changer)
 ```
 
 Aucune dépendance à installer (bibliothèque standard uniquement).
+
+## Déploiement
+
+Deux implémentations du même `/api/chat`, selon l'environnement :
+
+| | Fichier | Runtime |
+|---|---|---|
+| Local | `server.py` (serveur statique + proxy) | Python, stdlib |
+| Vercel | `api/chat.mjs` (fonction serverless) | Node |
+
+- `index.html` est servi tel quel (statique), en local par `server.py`, en
+  production par Vercel.
+- Sur Vercel, la clé vient de la variable d'environnement `GROQ_API_KEY`
+  (Project Settings → Environment Variables), pas d'un fichier.
+- `main` est la branche de production Vercel ; `server.py` reste inutilisé
+  en ligne.
 
 ## Assistant IA (optionnel)
 
@@ -40,8 +60,10 @@ Sans clé, le reste de l'application fonctionne normalement.
 ## Fichiers
 
 - `index.html` — l'application complète (UI + logique, un seul fichier)
-- `server.py` — serveur statique + proxy `/api/chat` avec limitation de débit
-  (12 requêtes/minute par IP) et validation des entrées
+- `server.py` — serveur local : statique + proxy `/api/chat`
+- `api/chat.mjs` — même proxy en fonction serverless Vercel
+- Les deux proxys appliquent la même limite (12 requêtes/minute par IP) et la
+  même validation des entrées ; ils ne relaient jamais le corps d'erreur de Groq.
 - `.gitignore` — exclut la clé API et les artefacts Python
 
 ## Notes
